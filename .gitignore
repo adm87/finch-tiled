@@ -1,0 +1,14 @@
+*
+
+!.gitignore
+
+!go.mod
+!go.sum
+
+!LICENSE
+
+!module/
+!module/**/*
+
+!tiled/
+!tiled/**/*
