@@ -68,6 +68,15 @@ func NewTsxResourceSystem() *TsxResourceSystem {
 	}
 }
 
+func GetTsx(key string) (*TSX, bool) {
+	sys := resources.GetSystem(tsxSystem).(*TsxResourceSystem)
+	sys.mu.Lock()
+	defer sys.mu.Unlock()
+
+	tsx, exists := sys.tilesets[key]
+	return tsx, exists
+}
+
 func (rs *TsxResourceSystem) ResourceTypes() []string {
 	return []string{"tsx"}
 }

@@ -216,6 +216,15 @@ func NewTmxResourceSystem() *TmxResourceSystem {
 	}
 }
 
+func GetTmx(key string) (*TMX, bool) {
+	sys := resources.GetSystem(tmxSystem).(*TmxResourceSystem)
+	sys.mu.Lock()
+	defer sys.mu.Unlock()
+
+	tmx, exists := sys.tilemaps[key]
+	return tmx, exists
+}
+
 func (rs *TmxResourceSystem) ResourceTypes() []string {
 	return []string{"tmx"}
 }
