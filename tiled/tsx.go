@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -84,6 +85,12 @@ func (rs *TsxResourceSystem) IsLoaded(key string) bool {
 }
 
 func (rs *TsxResourceSystem) Load(ctx finch.Context, key string, metadata *resources.Metadata) error {
+	_, err := rs.load_tsx(ctx, key, metadata)
+	if err != nil {
+		return err
+	}
+
+	ctx.Logger().Info("resource loaded", slog.String("key", key))
 	return nil
 }
 

@@ -3,6 +3,7 @@ package tiled
 import (
 	"encoding/xml"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -232,6 +233,12 @@ func (rs *TmxResourceSystem) IsLoaded(key string) bool {
 }
 
 func (rs *TmxResourceSystem) Load(ctx finch.Context, key string, metadata *resources.Metadata) error {
+	_, err := rs.load_tmx(ctx, key, metadata)
+	if err != nil {
+		return err
+	}
+
+	ctx.Logger().Info("resource loaded", slog.String("key", key))
 	return nil
 }
 
