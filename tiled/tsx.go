@@ -14,10 +14,6 @@ import (
 	"github.com/adm87/finch-resources/resources"
 )
 
-const (
-	TSXMetadataImageRefs = "img_refs"
-)
-
 // ======================================================
 // TSX File Structure
 // ======================================================
@@ -69,7 +65,11 @@ func NewTsxResourceSystem() *TsxResourceSystem {
 }
 
 func GetTsx(key string) (*TSX, bool) {
-	sys := resources.GetSystem(tsxSystem).(*TsxResourceSystem)
+	sys, ok := resources.GetSystem(tsxSystem).(*TsxResourceSystem)
+	if !ok {
+		return nil, false
+	}
+
 	sys.mu.Lock()
 	defer sys.mu.Unlock()
 
@@ -119,19 +119,19 @@ func (rs *TsxResourceSystem) GenerateMetadata(ctx finch.Context, key string, met
 		imgRefs = append(imgRefs, strings.TrimSuffix(b, filepath.Ext(b)))
 	}
 
-	metadata.Extras = map[string]any{
-		TSXMetadataImageRefs: imgRefs,
+	metadata.Properties = map[string]any{
+		"refs": imgRefs,
 	}
 
 	return nil
 }
 
 func (rs *TsxResourceSystem) GetDependencies(ctx finch.Context, key string, metadata *resources.Metadata) (imgRefs []string) {
-	if metadata.Extras == nil {
+	if metadata.Properties == nil {
 		return nil
 	}
 
-	raw, exists := metadata.Extras[TSXMetadataImageRefs]
+	raw, exists := metadata.Properties["refs"]
 	if !exists {
 		return nil
 	}

@@ -13,10 +13,6 @@ import (
 	"github.com/adm87/finch-resources/resources"
 )
 
-const (
-	TMXMetadataTSXRefs = "tsx_refs"
-)
-
 // ======================================================
 // TMX Encoding
 // ======================================================
@@ -217,7 +213,11 @@ func NewTmxResourceSystem() *TmxResourceSystem {
 }
 
 func GetTmx(key string) (*TMX, bool) {
-	sys := resources.GetSystem(tmxSystem).(*TmxResourceSystem)
+	sys, ok := resources.GetSystem(tmxSystem).(*TmxResourceSystem)
+	if !ok {
+		return nil, false
+	}
+
 	sys.mu.Lock()
 	defer sys.mu.Unlock()
 
@@ -267,19 +267,19 @@ func (rs *TmxResourceSystem) GenerateMetadata(ctx finch.Context, key string, met
 		tsxRefs = append(tsxRefs, strings.TrimSuffix(b, filepath.Ext(b)))
 	}
 
-	metadata.Extras = map[string]any{
-		TMXMetadataTSXRefs: tsxRefs,
+	metadata.Properties = map[string]any{
+		"refs": tsxRefs,
 	}
 
 	return nil
 }
 
 func (rs *TmxResourceSystem) GetDependencies(ctx finch.Context, key string, metadata *resources.Metadata) (tsxRefs []string) {
-	if metadata.Extras == nil {
+	if metadata.Properties == nil {
 		return nil
 	}
 
-	raw, ok := metadata.Extras[TMXMetadataTSXRefs]
+	raw, ok := metadata.Properties["refs"]
 	if !ok {
 		return nil
 	}
