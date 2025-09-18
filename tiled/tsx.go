@@ -64,7 +64,7 @@ func NewTsxResourceSystem() *TsxResourceSystem {
 	}
 }
 
-func GetTsx(key string) (*TSX, bool) {
+func GetTsx(handle resources.ResourceHandle) (*TSX, bool) {
 	sys, ok := resources.GetSystem(tsxSystem).(*TsxResourceSystem)
 	if !ok {
 		return nil, false
@@ -73,7 +73,7 @@ func GetTsx(key string) (*TSX, bool) {
 	sys.mu.Lock()
 	defer sys.mu.Unlock()
 
-	tsx, exists := sys.tilesets[key]
+	tsx, exists := sys.tilesets[handle.Key()]
 	return tsx, exists
 }
 
@@ -85,25 +85,30 @@ func (rs *TsxResourceSystem) Type() resources.ResourceSystemType {
 	return tsxSystem
 }
 
-func (rs *TsxResourceSystem) IsLoaded(key string) bool {
+func (rs *TsxResourceSystem) IsLoaded(handle resources.ResourceHandle) bool {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
-	_, exists := rs.tilesets[key]
+	_, exists := rs.tilesets[handle.Key()]
 	return exists
 }
 
-func (rs *TsxResourceSystem) Load(ctx finch.Context, key string, metadata *resources.Metadata) error {
-	_, err := rs.load_tsx(ctx, key, metadata)
+func (rs *TsxResourceSystem) Load(ctx finch.Context, handle resources.ResourceHandle) error {
+	metadata, exists := handle.Metadata()
+	if !exists {
+		return fmt.Errorf("cannot find metadata in manifest: %s", handle.Key())
+	}
+
+	_, err := rs.load_tsx(ctx, handle.Key(), metadata)
 	if err != nil {
 		return err
 	}
 
-	ctx.Logger().Info("resource loaded", slog.String("key", key))
+	ctx.Logger().Info("resource loaded", slog.String("key", handle.Key()))
 	return nil
 }
 
-func (rs *TsxResourceSystem) Unload(ctx finch.Context, key string) error {
+func (rs *TsxResourceSystem) Unload(ctx finch.Context, handle resources.ResourceHandle) error {
 	return errors.New("not implemented")
 }
 
@@ -126,7 +131,12 @@ func (rs *TsxResourceSystem) GenerateMetadata(ctx finch.Context, key string, met
 	return nil
 }
 
-func (rs *TsxResourceSystem) GetDependencies(ctx finch.Context, key string, metadata *resources.Metadata) (imgRefs []string) {
+func (rs *TsxResourceSystem) GetDependencies(ctx finch.Context, handle resources.ResourceHandle) (imgRefs []resources.ResourceHandle) {
+	metadata, exists := handle.Metadata()
+	if !exists {
+		return nil
+	}
+
 	if metadata.Properties == nil {
 		return nil
 	}
@@ -141,11 +151,11 @@ func (rs *TsxResourceSystem) GetDependencies(ctx finch.Context, key string, meta
 		return nil
 	}
 
-	imgRefs = make([]string, 0, len(s))
+	imgRefs = make([]resources.ResourceHandle, 0, len(s))
 	for _, v := range s {
 		str, ok := v.(string)
 		if ok {
-			imgRefs = append(imgRefs, str)
+			imgRefs = append(imgRefs, resources.ResourceHandle(str))
 		}
 	}
 

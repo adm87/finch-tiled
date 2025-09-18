@@ -212,7 +212,7 @@ func NewTmxResourceSystem() *TmxResourceSystem {
 	}
 }
 
-func GetTmx(key string) (*TMX, bool) {
+func GetTmx(handle resources.ResourceHandle) (*TMX, bool) {
 	sys, ok := resources.GetSystem(tmxSystem).(*TmxResourceSystem)
 	if !ok {
 		return nil, false
@@ -221,7 +221,7 @@ func GetTmx(key string) (*TMX, bool) {
 	sys.mu.Lock()
 	defer sys.mu.Unlock()
 
-	tmx, exists := sys.tilemaps[key]
+	tmx, exists := sys.tilemaps[handle.Key()]
 	return tmx, exists
 }
 
@@ -233,25 +233,30 @@ func (rs *TmxResourceSystem) Type() resources.ResourceSystemType {
 	return tmxSystem
 }
 
-func (rs *TmxResourceSystem) IsLoaded(key string) bool {
+func (rs *TmxResourceSystem) IsLoaded(handle resources.ResourceHandle) bool {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
-	_, exists := rs.tilemaps[key]
+	_, exists := rs.tilemaps[handle.Key()]
 	return exists
 }
 
-func (rs *TmxResourceSystem) Load(ctx finch.Context, key string, metadata *resources.Metadata) error {
-	_, err := rs.load_tmx(ctx, key, metadata)
+func (rs *TmxResourceSystem) Load(ctx finch.Context, handle resources.ResourceHandle) error {
+	metadata, exists := handle.Metadata()
+	if !exists {
+		return fmt.Errorf("cannot find metadata in manifest: %s", handle.Key())
+	}
+
+	_, err := rs.load_tmx(ctx, handle.Key(), metadata)
 	if err != nil {
 		return err
 	}
 
-	ctx.Logger().Info("resource loaded", slog.String("key", key))
+	ctx.Logger().Info("resource loaded", slog.String("key", handle.Key()))
 	return nil
 }
 
-func (rs *TmxResourceSystem) Unload(ctx finch.Context, key string) error {
+func (rs *TmxResourceSystem) Unload(ctx finch.Context, handle resources.ResourceHandle) error {
 	return nil
 }
 
@@ -274,7 +279,12 @@ func (rs *TmxResourceSystem) GenerateMetadata(ctx finch.Context, key string, met
 	return nil
 }
 
-func (rs *TmxResourceSystem) GetDependencies(ctx finch.Context, key string, metadata *resources.Metadata) (tsxRefs []string) {
+func (rs *TmxResourceSystem) GetDependencies(ctx finch.Context, handle resources.ResourceHandle) (tsxRefs []resources.ResourceHandle) {
+	metadata, exists := handle.Metadata()
+	if !exists {
+		return nil
+	}
+
 	if metadata.Properties == nil {
 		return nil
 	}
@@ -289,11 +299,11 @@ func (rs *TmxResourceSystem) GetDependencies(ctx finch.Context, key string, meta
 		return nil
 	}
 
-	tsxRefs = make([]string, 0, len(s))
+	tsxRefs = make([]resources.ResourceHandle, 0, len(s))
 	for _, v := range s {
 		str, ok := v.(string)
 		if ok {
-			tsxRefs = append(tsxRefs, str)
+			tsxRefs = append(tsxRefs, resources.ResourceHandle(str))
 		}
 	}
 
