@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	github.com/adm87/finch-core v0.0.0-20250918013049-064839093953
-	github.com/adm87/finch-resources v0.0.0-20250918013323-58ed29355705
+	github.com/adm87/finch-resources v0.0.0-20250919203626-55b901c9841b
 	github.com/hajimehoshi/ebiten/v2 v2.8.8
 )
 

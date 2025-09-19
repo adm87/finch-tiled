@@ -15,36 +15,6 @@ import (
 )
 
 // ======================================================
-// TSX File Structure
-// ======================================================
-
-type TSX struct {
-	Version      string   `xml:"version,attr"`
-	TiledVersion string   `xml:"tiledversion,attr"`
-	Name         string   `xml:"name,attr"`
-	TileWidth    int      `xml:"tilewidth,attr"`
-	TileHeight   int      `xml:"tileheight,attr"`
-	Spacing      int      `xml:"spacing,attr"`
-	TileCount    int      `xml:"tilecount,attr"`
-	Columns      int      `xml:"columns,attr"`
-	Image        TSXImage `xml:"image"`
-}
-
-type TSXImage struct {
-	Source string `xml:"source,attr"`
-	Width  int    `xml:"width,attr"`
-	Height int    `xml:"height,attr"`
-}
-
-func (tsx *TSX) IsValid() error {
-	if tsx.Image.Source == "" {
-		return errors.New("tsx image source is required")
-	}
-	// TASK: Finish filling out validation checks.
-	return nil
-}
-
-// ======================================================
 // TSX Resource System
 // ======================================================
 
@@ -119,8 +89,8 @@ func (rs *TsxResourceSystem) GenerateMetadata(ctx finch.Context, key string, met
 	}
 
 	var imgRefs []string
-	if tsx.Image.Source != "" {
-		b := filepath.Base(tsx.Image.Source)
+	if tsx.Image.Source() != "" {
+		b := filepath.Base(tsx.Image.Source())
 		imgRefs = append(imgRefs, strings.TrimSuffix(b, filepath.Ext(b)))
 	}
 
@@ -180,10 +150,6 @@ func (rs *TsxResourceSystem) load_tsx(ctx finch.Context, key string, metadata *r
 
 	var tsx TSX
 	if err := xml.Unmarshal(data, &tsx); err != nil {
-		return nil, err
-	}
-
-	if err := tsx.IsValid(); err != nil {
 		return nil, err
 	}
 
