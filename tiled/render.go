@@ -69,8 +69,7 @@ func draw_region(ctx finch.Context, data *TMX, region geom.Rect64) *ebiten.Image
 }
 
 func draw_region_to(ctx finch.Context, img *ebiten.Image, tmx *TMX, region geom.Rect64) {
-	tileWidth := tmx.TileWidth()
-	tileHeight := tmx.TileHeight()
+	cellSize := geom.NewPoint64(float64(tmx.TileWidth()), float64(tmx.TileHeight()))
 
 	for _, layer := range tmx.Layers {
 		if !layer.Visible() {
@@ -92,18 +91,18 @@ func draw_region_to(ctx finch.Context, img *ebiten.Image, tmx *TMX, region geom.
 				continue
 			}
 
-			x := (i % layer.Width()) * tileWidth
-			y := (i / layer.Width()) * tileHeight
+			x := (i % layer.Width()) * int(cellSize.X)
+			y := (i / layer.Width()) * int(cellSize.Y)
 
-			if !is_tile_in_region(tmx, region, x, y, tileWidth, tileHeight) {
+			if !is_tile_in_region(tmx, region, x, y, int(cellSize.X), int(cellSize.Y)) {
 				continue
 			}
 
-			gid, hFlip, vFlip, dFlip, hRot := DecodeTile(tileIndex)
-			tileset, exists := tmx.FindTilesetByTileGID(gid)
+			tile := DecodeTile(tileIndex)
+			tileset, exists := tmx.FindTilesetByTileGID(tile.GID)
 
 			if !exists {
-				ctx.Logger().Warn("no tileset found for tile GID", slog.Any("gid", gid), slog.String("layer", layer.Name()))
+				ctx.Logger().Warn("no tileset found for tile GID", slog.Any("gid", tile.GID), slog.String("layer", layer.Name()))
 				continue
 			}
 
@@ -115,6 +114,14 @@ func draw_region_to(ctx finch.Context, img *ebiten.Image, tmx *TMX, region geom.
 				return
 			}
 
+			minx, miny := region.Min()
+
+			tile.GID -= tileset.FirstGID()
+			tile.X = float64(x) - minx
+			tile.Y = float64(y) - miny
+			tile.Width = float64(tsx.TileWidth())
+			tile.Height = float64(tsx.TileHeight())
+
 			tsxImgKey := resources.KeyFromPath(tsx.Image.Source())
 			tsxImg, exists := images.GetImage(resources.ResourceHandle(tsxImgKey))
 
@@ -123,10 +130,7 @@ func draw_region_to(ctx finch.Context, img *ebiten.Image, tmx *TMX, region geom.
 				return
 			}
 
-			tile := gid - tileset.FirstGID()
-			minx, miny := region.Min()
-
-			blit_tile(ctx, img, tsxImg, tmx, tsx, tile, hFlip, vFlip, dFlip, hRot, x, y, -minx, -miny)
+			blit_tile(ctx, img, tsxImg, &cellSize, &tile)
 		}
 	}
 }
@@ -145,39 +149,36 @@ func is_tile_in_region(tmx *TMX, region geom.Rect64, x, y, tw, th int) bool {
 	return true
 }
 
-func blit_tile(ctx finch.Context, img *ebiten.Image, tilesetImg *ebiten.Image, tmx *TMX, tsx *TSX, tile uint32, hFlip, vFlip, dFlip, hRot bool, x, y int, dx, dy float64) {
+func blit_tile(ctx finch.Context, img *ebiten.Image, tilesetImg *ebiten.Image, mapTileSize *geom.Point64, tile *Tile) {
 	op := &ebiten.DrawImageOptions{}
 
 	// Tiled anchors tiles at the bottom-left of their cell
 	// See: https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
-	op.GeoM.Translate(0, float64(-tsx.TileHeight()+tmx.TileHeight()))
+	op.GeoM.Translate(0, mapTileSize.Y-tile.Height)
 
 	// The order of operations is important here.
 	// See: https://doc.mapeditor.org/en/stable/reference/global-tile-ids/#tile-flipping
-	if dFlip {
+	if tile.DiagonalFlip {
 		op.GeoM.Rotate(fsys.HalfPi)
 		op.GeoM.Scale(-1, 1)
-		op.GeoM.Translate(float64(tsx.TileHeight()-tsx.TileWidth()), 0)
+		op.GeoM.Translate(tile.Height-tile.Width, 0)
 		// Swap horizontal and vertical flip flags
-		hFlip, vFlip = vFlip, hFlip
+		tile.HorizontalFlip, tile.VerticalFlip = tile.VerticalFlip, tile.HorizontalFlip
 	}
-	if hFlip {
+	if tile.HorizontalFlip {
 		op.GeoM.Scale(-1, 1)
-		op.GeoM.Translate(float64(tsx.TileWidth()), 0)
+		op.GeoM.Translate(tile.Width, 0)
 	}
-	if vFlip {
+	if tile.VerticalFlip {
 		op.GeoM.Scale(1, -1)
-		op.GeoM.Translate(0, float64(tsx.TileHeight()))
+		op.GeoM.Translate(0, tile.Height)
 	}
 
-	x = x + tsx.TileOffset.X() + int(dx)
-	y = y + tsx.TileOffset.Y() + int(dy)
+	op.GeoM.Translate(tile.X, tile.Y)
 
-	op.GeoM.Translate(float64(x), float64(y))
+	tilesPerRow := float64(tilesetImg.Bounds().Dx()) / tile.Width
+	tileX := (int(tile.GID) % int(tilesPerRow)) * int(tile.Width)
+	tileY := (int(tile.GID) / int(tilesPerRow)) * int(tile.Height)
 
-	tilesPerRow := tsx.Image.Width() / tsx.TileWidth()
-	tileX := (int(tile) % tilesPerRow) * tsx.TileWidth()
-	tileY := (int(tile) / tilesPerRow) * tsx.TileHeight()
-
-	img.DrawImage(tilesetImg.SubImage(image.Rect(tileX, tileY, tileX+tsx.TileWidth(), tileY+tsx.TileHeight())).(*ebiten.Image), op)
+	img.DrawImage(tilesetImg.SubImage(image.Rect(tileX, tileY, tileX+int(tile.Width), tileY+int(tile.Height))).(*ebiten.Image), op)
 }

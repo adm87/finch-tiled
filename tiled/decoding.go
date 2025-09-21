@@ -49,11 +49,12 @@ func DecodeData(data string, encoding TMXEncoding) ([]uint32, error) {
 	panic(fmt.Sprintf("unsupported TMX encoding: %s", encoding))
 }
 
-func DecodeTile(tileIndex uint32) (gid uint32, hFlip, vFlip, dFlip, hRot bool) {
-	gid = tileIndex & TILE_ID
-	hFlip = (tileIndex & FLIP_HORIZONTALLY) != 0
-	vFlip = (tileIndex & FLIP_VERTICALLY) != 0
-	dFlip = (tileIndex & FLIP_DIAGONALLY) != 0
-	hRot = (tileIndex & FLIP_ROTATED_HEX) != 0
-	return
+func DecodeTile(tileIndex uint32) Tile {
+	return Tile{
+		GID:             tileIndex & TILE_ID,
+		HorizontalFlip:  (tileIndex & FLIP_HORIZONTALLY) != 0,
+		VerticalFlip:    (tileIndex & FLIP_VERTICALLY) != 0,
+		DiagonalFlip:    (tileIndex & FLIP_DIAGONALLY) != 0,
+		HexagonalRotate: (tileIndex & FLIP_ROTATED_HEX) != 0,
+	}
 }

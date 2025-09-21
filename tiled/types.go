@@ -624,3 +624,19 @@ func (img TSXImage) Height() int {
 	}
 	return 0
 }
+
+// ======================================================
+// Misc.
+// ======================================================
+
+type Tile struct {
+	X               float64
+	Y               float64
+	Width           float64
+	Height          float64
+	HorizontalFlip  bool
+	VerticalFlip    bool
+	DiagonalFlip    bool
+	HexagonalRotate bool
+	GID             uint32
+}
