@@ -3,7 +3,7 @@ module github.com/adm87/finch-tiled
 go 1.25.1
 
 require (
-	github.com/adm87/finch-core v0.0.0-20250921132101-8283b55bf258
+	github.com/adm87/finch-core v0.0.0-20250921181822-af26f12ddd89
 	github.com/adm87/finch-resources v0.0.0-20250919203626-55b901c9841b
 	github.com/hajimehoshi/ebiten/v2 v2.8.8
 )

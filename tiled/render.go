@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/adm87/finch-core/finch"
+	"github.com/adm87/finch-core/fsys"
 	"github.com/adm87/finch-core/geom"
 	"github.com/adm87/finch-resources/images"
 	"github.com/adm87/finch-resources/resources"
@@ -49,6 +50,7 @@ func Draw(ctx finch.Context, img *ebiten.Image, tmxHandle resources.ResourceHand
 	draw_region_to(ctx, img, tmx, geom.NewRect64(0, 0, float64(tmx.Width()*tmx.TileWidth()), float64(tmx.Height()*tmx.TileHeight())))
 }
 
+// DrawRegion attempts to retrieve the specified .tmx resource and, if found, draws the specified region of the tilemap onto the provided image.
 func DrawRegion(ctx finch.Context, img *ebiten.Image, tmxHandle resources.ResourceHandle, region geom.Rect64) {
 	tmx, exists := GetTmx(tmxHandle)
 
@@ -97,7 +99,7 @@ func draw_region_to(ctx finch.Context, img *ebiten.Image, tmx *TMX, region geom.
 				continue
 			}
 
-			gid, hFlip, vFlip, dFlip, _ := DecodeTile(tileIndex)
+			gid, hFlip, vFlip, dFlip, hRot := DecodeTile(tileIndex)
 			tileset, exists := tmx.FindTilesetByTileGID(gid)
 
 			if !exists {
@@ -124,7 +126,7 @@ func draw_region_to(ctx finch.Context, img *ebiten.Image, tmx *TMX, region geom.
 			tile := gid - tileset.FirstGID()
 			minx, miny := region.Min()
 
-			blit_tile(ctx, img, tsxImg, tmx, tsx, tile, hFlip, vFlip, dFlip, x, y, -minx, -miny)
+			blit_tile(ctx, img, tsxImg, tmx, tsx, tile, hFlip, vFlip, dFlip, hRot, x, y, -minx, -miny)
 		}
 	}
 }
@@ -143,19 +145,22 @@ func is_tile_in_region(tmx *TMX, region geom.Rect64, x, y, tw, th int) bool {
 	return true
 }
 
-func blit_tile(ctx finch.Context, img *ebiten.Image, tilesetImg *ebiten.Image, tmx *TMX, tsx *TSX, tile uint32, hFlip, vFlip, dFlip bool, x, y int, dx, dy float64) {
-	tilesPerRow := tsx.Image.Width() / tsx.TileWidth()
-	tileX := (int(tile) % tilesPerRow) * tsx.TileWidth()
-	tileY := (int(tile) / tilesPerRow) * tsx.TileHeight()
-
-	sub := tilesetImg.SubImage(image.Rect(tileX, tileY, tileX+tsx.TileWidth(), tileY+tsx.TileHeight())).(*ebiten.Image)
-
+func blit_tile(ctx finch.Context, img *ebiten.Image, tilesetImg *ebiten.Image, tmx *TMX, tsx *TSX, tile uint32, hFlip, vFlip, dFlip, hRot bool, x, y int, dx, dy float64) {
 	op := &ebiten.DrawImageOptions{}
 
 	// Tiled anchors tiles at the bottom-left of their cell
 	// See: https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
 	op.GeoM.Translate(0, float64(-tsx.TileHeight()+tmx.TileHeight()))
 
+	// The order of operations is important here.
+	// See: https://doc.mapeditor.org/en/stable/reference/global-tile-ids/#tile-flipping
+	if dFlip {
+		op.GeoM.Rotate(fsys.HalfPi)
+		op.GeoM.Scale(-1, 1)
+		op.GeoM.Translate(float64(tsx.TileHeight()-tsx.TileWidth()), 0)
+		// Swap horizontal and vertical flip flags
+		hFlip, vFlip = vFlip, hFlip
+	}
 	if hFlip {
 		op.GeoM.Scale(-1, 1)
 		op.GeoM.Translate(float64(tsx.TileWidth()), 0)
@@ -164,16 +169,15 @@ func blit_tile(ctx finch.Context, img *ebiten.Image, tilesetImg *ebiten.Image, t
 		op.GeoM.Scale(1, -1)
 		op.GeoM.Translate(0, float64(tsx.TileHeight()))
 	}
-	if dFlip {
-		op.GeoM.Rotate(-3.14159265 / 2) // -90 degrees in radians
-		op.GeoM.Scale(1, -1)
-		op.GeoM.Translate(float64(tsx.TileHeight()), 0)
-	}
 
 	x = x + tsx.TileOffset.X() + int(dx)
 	y = y + tsx.TileOffset.Y() + int(dy)
 
 	op.GeoM.Translate(float64(x), float64(y))
 
-	img.DrawImage(sub, op)
+	tilesPerRow := tsx.Image.Width() / tsx.TileWidth()
+	tileX := (int(tile) % tilesPerRow) * tsx.TileWidth()
+	tileY := (int(tile) / tilesPerRow) * tsx.TileHeight()
+
+	img.DrawImage(tilesetImg.SubImage(image.Rect(tileX, tileY, tileX+tsx.TileWidth(), tileY+tsx.TileHeight())).(*ebiten.Image), op)
 }

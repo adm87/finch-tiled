@@ -92,6 +92,7 @@ const (
 	YAttr            = "y"
 	NextLayerIDAttr  = "nextlayerid"
 	NextObjectIDAttr = "nextobjectid"
+	LockedAttr       = "locked"
 )
 
 var attr_unmarshallers = map[string]func(s string) (TiledXMLAttr, error){
@@ -104,6 +105,7 @@ var attr_unmarshallers = map[string]func(s string) (TiledXMLAttr, error){
 	EncodingAttr:     func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
 	InfiniteAttr:     func(s string) (TiledXMLAttr, error) { return UnmarshalAttrBool(s) },
 	VisibleAttr:      func(s string) (TiledXMLAttr, error) { return UnmarshalAttrBool(s) },
+	LockedAttr:       func(s string) (TiledXMLAttr, error) { return UnmarshalAttrBool(s) },
 	WidthAttr:        func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
 	HeightAttr:       func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
 	TileWidthAttr:    func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },

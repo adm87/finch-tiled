@@ -6,6 +6,14 @@ import (
 	"strings"
 )
 
+const (
+	TILE_ID           = 0x1FFFFFFF
+	FLIP_HORIZONTALLY = 0x80000000
+	FLIP_VERTICALLY   = 0x40000000
+	FLIP_DIAGONALLY   = 0x20000000
+	FLIP_ROTATED_HEX  = 0x10000000
+)
+
 type DecodingFunc func(data string) ([]uint32, error)
 
 var decodingFunctions = map[TMXEncoding]DecodingFunc{
@@ -42,10 +50,10 @@ func DecodeData(data string, encoding TMXEncoding) ([]uint32, error) {
 }
 
 func DecodeTile(tileIndex uint32) (gid uint32, hFlip, vFlip, dFlip, hRot bool) {
-	gid = tileIndex & 0x1FFFFFFF
-	hFlip = (tileIndex & 0x80000000) != 0
-	vFlip = (tileIndex & 0x40000000) != 0
-	dFlip = (tileIndex & 0x20000000) != 0
-	hRot = (tileIndex & 0x10000000) != 0
+	gid = tileIndex & TILE_ID
+	hFlip = (tileIndex & FLIP_HORIZONTALLY) != 0
+	vFlip = (tileIndex & FLIP_VERTICALLY) != 0
+	dFlip = (tileIndex & FLIP_DIAGONALLY) != 0
+	hRot = (tileIndex & FLIP_ROTATED_HEX) != 0
 	return
 }
