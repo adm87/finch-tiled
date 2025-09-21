@@ -15,7 +15,7 @@ import (
 // TMX Resource System
 // ======================================================
 
-var tmxSystem = resources.NewResourceSystemKey[*TmxResourceSystem]()
+var tmxSystemType = resources.NewResourceSystemKey[*TmxResourceSystem]()
 
 type TmxResourceSystem struct {
 	tilemaps map[string]*TMX
@@ -32,7 +32,7 @@ func NewTmxResourceSystem() *TmxResourceSystem {
 }
 
 func GetTmx(handle resources.ResourceHandle) (*TMX, bool) {
-	sys, ok := resources.GetSystem(tmxSystem).(*TmxResourceSystem)
+	sys, ok := resources.GetSystem(tmxSystemType).(*TmxResourceSystem)
 	if !ok {
 		return nil, false
 	}
@@ -49,7 +49,7 @@ func (rs *TmxResourceSystem) ResourceTypes() []string {
 }
 
 func (rs *TmxResourceSystem) Type() resources.ResourceSystemType {
-	return tmxSystem
+	return tmxSystemType
 }
 
 func (rs *TmxResourceSystem) IsLoaded(handle resources.ResourceHandle) bool {
