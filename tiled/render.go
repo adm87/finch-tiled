@@ -114,9 +114,6 @@ func draw_map_layer(mode DrawMode, destImg *ebiten.Image, layer *TMXLayer, tiles
 			op.GeoM.Rotate(fsys.HalfPi)
 			op.GeoM.Scale(-1, 1)
 			op.GeoM.Translate(float64(tiles[i].Height-tiles[i].Width), 0)
-
-			// Swap horizontal and vertical flip flags
-			tiles[i].Flags ^= FLIP_HORIZONTAL | FLIP_VERTICAL
 		}
 		if tiles[i].Flags&FLIP_HORIZONTAL != 0 {
 			op.GeoM.Scale(-1, 1)
@@ -235,6 +232,11 @@ func decode_tiles(data string, tilesets []*TMXTileset, localStartX, localStartY,
 		}
 		if (parsedData[i] & TILE_FLIP_DIAGONAL) != 0 {
 			flags |= FLIP_DIAGONAL
+			// According to Tiled docs, diagonal flip swaps horizontal and vertical flips
+			// See: https://doc.mapeditor.org/en/stable/reference/global-tile-ids/#tile-flipping
+			if flags&(FLIP_HORIZONTAL|FLIP_VERTICAL) != 0 {
+				flags ^= FLIP_HORIZONTAL | FLIP_VERTICAL
+			}
 		}
 		if (parsedData[i] & TILE_FLIP_ROTATED_HEX) != 0 {
 			flags |= FLIP_ROTATED_HEX
