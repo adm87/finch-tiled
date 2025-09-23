@@ -18,16 +18,16 @@ import (
 var tmxSystemType = resources.NewResourceSystemKey[*TmxResourceSystem]()
 
 type TmxResourceSystem struct {
-	tilemaps map[string]*TMX
-	loading  types.HashSet[string]
-	mu       sync.Mutex
+	store   map[string]*TMX
+	loading types.HashSet[string]
+	mu      sync.Mutex
 }
 
 func NewTmxResourceSystem() *TmxResourceSystem {
 	return &TmxResourceSystem{
-		tilemaps: make(map[string]*TMX),
-		loading:  make(types.HashSet[string]),
-		mu:       sync.Mutex{},
+		store:   make(map[string]*TMX),
+		loading: make(types.HashSet[string]),
+		mu:      sync.Mutex{},
 	}
 }
 
@@ -40,7 +40,7 @@ func GetTmx(handle resources.ResourceHandle) (*TMX, bool) {
 	sys.mu.Lock()
 	defer sys.mu.Unlock()
 
-	tmx, exists := sys.tilemaps[handle.Key()]
+	tmx, exists := sys.store[handle.Key()]
 	return tmx, exists
 }
 
@@ -56,7 +56,7 @@ func (rs *TmxResourceSystem) IsLoaded(handle resources.ResourceHandle) bool {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
-	_, exists := rs.tilemaps[handle.Key()]
+	_, exists := rs.store[handle.Key()]
 	return exists
 }
 
@@ -150,7 +150,7 @@ func (rs *TmxResourceSystem) load_tmx(ctx finch.Context, key string, metadata *r
 	}
 
 	rs.mu.Lock()
-	rs.tilemaps[key] = &tmx
+	rs.store[key] = &tmx
 	rs.mu.Unlock()
 
 	return &tmx, nil
@@ -160,7 +160,7 @@ func (rs *TmxResourceSystem) try_load(key string) error {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
-	if _, exists := rs.tilemaps[key]; exists {
+	if _, exists := rs.store[key]; exists {
 		return fmt.Errorf("tmx resource is already loaded: %s", key)
 	}
 	if rs.loading.Contains(key) {

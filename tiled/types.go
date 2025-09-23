@@ -3,10 +3,46 @@ package tiled
 import (
 	"encoding/xml"
 	"fmt"
+
+	"github.com/adm87/finch-core/geom"
 )
 
-type TiledXMLAttr interface {
+// ======================================================
+// Miscellaneous Types
+// ======================================================
+
+type TiledFlags uint8
+
+const (
+	FLIP_NONE       TiledFlags = 0
+	FLIP_HORIZONTAL TiledFlags = 1 << iota
+	FLIP_VERTICAL
+	FLIP_DIAGONAL
+	FLIP_ROTATED_HEX
+)
+
+const (
+	// These constants represent the bit flags used by Tiled to encode tile transformations.
+	// See: https://doc.mapeditor.org/en/stable/reference/global-tile-ids/#tile-flipping
+
+	TILE_FLIP_HORIZONTAL  = 0x80000000
+	TILE_FLIP_VERTICAL    = 0x40000000
+	TILE_FLIP_DIAGONAL    = 0x20000000
+	TILE_FLIP_ROTATED_HEX = 0x10000000
+	TILE_ID_MASK          = 0x1FFFFFFF
+)
+
+type Tile struct {
+	GID           uint32
+	TsxKey        string
+	X, Y          float64
+	Width, Height float64
+	Flags         TiledFlags
 }
+
+type LayerPartitions map[geom.Rect64][]*Tile
+
+type TiledXMLAttr any
 
 // ======================================================
 // String Attribute
@@ -226,8 +262,8 @@ func (ro TMXRenderOrder) IsValid() bool {
 // TMX represents a deserialized Tiled tmx file.
 type TMX struct {
 	Attrs    TiledXMLAttrTable `xml:",any,attr"`
-	Tilesets []TMXTileset      `xml:"tileset"`
-	Layers   []TMXLayer        `xml:"layer"`
+	Tilesets []*TMXTileset     `xml:"tileset"`
+	Layers   []*TMXLayer       `xml:"layer"`
 }
 
 func (tmx TMX) Orientation() TMXOrientation {
@@ -302,7 +338,7 @@ func (tmx TMX) TileHeight() int {
 	return 0
 }
 
-func (tmx TMX) Infinite() bool {
+func (tmx TMX) IsInfinite() bool {
 	if infinite, exists := tmx.Attrs[InfiniteAttr]; exists {
 		if attr, ok := infinite.(AttrBool); ok {
 			return attr.Bool()
@@ -332,7 +368,7 @@ func (tmx TMX) NextObjectID() int {
 func (tmx TMX) FindTilesetByTileGID(gid uint32) (*TMXTileset, bool) {
 	for i := len(tmx.Tilesets) - 1; i >= 0; i-- {
 		if tmx.Tilesets[i].FirstGID() <= gid {
-			return &tmx.Tilesets[i], true
+			return tmx.Tilesets[i], true
 		}
 	}
 	return nil, false
@@ -370,7 +406,11 @@ func (ts TMXTileset) Source() string {
 
 type TMXLayer struct {
 	Attrs TiledXMLAttrTable `xml:",any,attr"`
-	Data  TMXLayerData      `xml:"data"`
+	Data  *TMXLayerData     `xml:"data"`
+
+	// Should these be stored here? Don't serialize them!
+	tiles      []*Tile
+	partitions LayerPartitions
 }
 
 func (layer TMXLayer) ID() int {
@@ -409,7 +449,7 @@ func (layer TMXLayer) Height() int {
 	return 0
 }
 
-func (layer TMXLayer) Visible() bool {
+func (layer TMXLayer) IsVisible() bool {
 	if visible, exists := layer.Attrs[VisibleAttr]; exists {
 		if attr, ok := visible.(AttrBool); ok {
 			return attr.Bool()
@@ -424,7 +464,7 @@ func (layer TMXLayer) Visible() bool {
 
 type TMXLayerData struct {
 	Attrs  TiledXMLAttrTable `xml:",any,attr"`
-	Chunks []TMXDataChunk    `xml:"chunk"`
+	Chunks []*TMXDataChunk   `xml:"chunk"`
 	Data   string            `xml:",chardata"`
 }
 
@@ -488,8 +528,8 @@ func (chunk TMXDataChunk) Height() int {
 
 type TSX struct {
 	Attrs      TiledXMLAttrTable `xml:",any,attr"`
-	TileOffset TSXTileOffset     `xml:"tileoffset"`
-	Image      TSXImage          `xml:"image"`
+	TileOffset *TSXTileOffset    `xml:"tileoffset"`
+	Image      *TSXImage         `xml:"image"`
 }
 
 func (tsx TSX) Version() string {
@@ -623,20 +663,4 @@ func (img TSXImage) Height() int {
 		}
 	}
 	return 0
-}
-
-// ======================================================
-// Misc.
-// ======================================================
-
-type Tile struct {
-	X               float64
-	Y               float64
-	Width           float64
-	Height          float64
-	HorizontalFlip  bool
-	VerticalFlip    bool
-	DiagonalFlip    bool
-	HexagonalRotate bool
-	GID             uint32
 }

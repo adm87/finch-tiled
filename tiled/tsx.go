@@ -21,16 +21,16 @@ import (
 var tsxSystem = resources.NewResourceSystemKey[*TsxResourceSystem]()
 
 type TsxResourceSystem struct {
-	tilesets map[string]*TSX
-	loading  types.HashSet[string]
-	mu       sync.Mutex
+	store   map[string]*TSX
+	loading types.HashSet[string]
+	mu      sync.Mutex
 }
 
 func NewTsxResourceSystem() *TsxResourceSystem {
 	return &TsxResourceSystem{
-		tilesets: make(map[string]*TSX),
-		loading:  make(types.HashSet[string]),
-		mu:       sync.Mutex{},
+		store:   make(map[string]*TSX),
+		loading: make(types.HashSet[string]),
+		mu:      sync.Mutex{},
 	}
 }
 
@@ -43,7 +43,7 @@ func GetTsx(handle resources.ResourceHandle) (*TSX, bool) {
 	sys.mu.Lock()
 	defer sys.mu.Unlock()
 
-	tsx, exists := sys.tilesets[handle.Key()]
+	tsx, exists := sys.store[handle.Key()]
 	return tsx, exists
 }
 
@@ -59,7 +59,7 @@ func (rs *TsxResourceSystem) IsLoaded(handle resources.ResourceHandle) bool {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
-	_, exists := rs.tilesets[handle.Key()]
+	_, exists := rs.store[handle.Key()]
 	return exists
 }
 
@@ -154,7 +154,7 @@ func (rs *TsxResourceSystem) load_tsx(ctx finch.Context, key string, metadata *r
 	}
 
 	rs.mu.Lock()
-	rs.tilesets[key] = &tsx
+	rs.store[key] = &tsx
 	rs.mu.Unlock()
 	return &tsx, nil
 }
@@ -163,7 +163,7 @@ func (rs *TsxResourceSystem) try_load(key string) error {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
-	if _, exists := rs.tilesets[key]; exists {
+	if _, exists := rs.store[key]; exists {
 		return fmt.Errorf("tsx resource is already loaded: %s", key)
 	}
 	if rs.loading.Contains(key) {
