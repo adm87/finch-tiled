@@ -260,12 +260,20 @@ func decode_tiles(data string, tilesets []*TMXTileset, localStartX, localStartY,
 			return nil, fmt.Errorf("tileset TSX not found: %s", tileset.Source())
 		}
 
+		x := float64(localStartX + ((i % cellPerRow) * cellWidth))
+		y := float64(localStartY + ((i / cellPerRow) * cellHeight))
+
+		if tsx.TileOffset != nil {
+			x += float64(tsx.TileOffset.X())
+			y += float64(tsx.TileOffset.Y())
+		}
+
 		tiles = append(tiles, &Tile{
 			Flags:  flags,
 			GID:    gid - tileset.FirstGID(),
 			TsxKey: resources.KeyFromPath(tileset.Source()),
-			X:      float64(localStartX + ((i % cellPerRow) * cellWidth)),
-			Y:      float64(localStartY + ((i / cellPerRow) * cellHeight)),
+			X:      x,
+			Y:      y,
 			Width:  float64(tsx.TileWidth()),
 			Height: float64(tsx.TileHeight()),
 		})

@@ -106,29 +106,31 @@ func (b AttrBool) Bool() bool {
 type TiledXMLAttrTable map[string]TiledXMLAttr
 
 const (
-	VersionAttr      = "version"
-	TiledVersionAttr = "tiledversion"
-	RenderOrderAttr  = "renderorder"
-	OrientationAttr  = "orientation"
-	NameAttr         = "name"
-	SourceAttr       = "source"
-	EncodingAttr     = "encoding"
-	InfiniteAttr     = "infinite"
-	VisibleAttr      = "visible"
-	WidthAttr        = "width"
-	HeightAttr       = "height"
-	TileWidthAttr    = "tilewidth"
-	TileHeightAttr   = "tileheight"
-	SpacingAttr      = "spacing"
-	TileCountAttr    = "tilecount"
 	ColumnsAttr      = "columns"
+	EncodingAttr     = "encoding"
 	FirstGIDAttr     = "firstgid"
+	HeightAttr       = "height"
 	IDAttr           = "id"
-	XAttr            = "x"
-	YAttr            = "y"
+	InfiniteAttr     = "infinite"
+	LockedAttr       = "locked"
+	NameAttr         = "name"
 	NextLayerIDAttr  = "nextlayerid"
 	NextObjectIDAttr = "nextobjectid"
-	LockedAttr       = "locked"
+	object           = "object"
+	objectgroup      = "objectgroup"
+	OrientationAttr  = "orientation"
+	RenderOrderAttr  = "renderorder"
+	SourceAttr       = "source"
+	SpacingAttr      = "spacing"
+	TileCountAttr    = "tilecount"
+	TileHeightAttr   = "tileheight"
+	TileWidthAttr    = "tilewidth"
+	TiledVersionAttr = "tiledversion"
+	VersionAttr      = "version"
+	VisibleAttr      = "visible"
+	WidthAttr        = "width"
+	XAttr            = "x"
+	YAttr            = "y"
 )
 
 var attr_unmarshallers = map[string]func(s string) (TiledXMLAttr, error){
@@ -261,9 +263,10 @@ func (ro TMXRenderOrder) IsValid() bool {
 
 // TMX represents a deserialized Tiled tmx file.
 type TMX struct {
-	Attrs    TiledXMLAttrTable `xml:",any,attr"`
-	Tilesets []*TMXTileset     `xml:"tileset"`
-	Layers   []*TMXLayer       `xml:"layer"`
+	Attrs        TiledXMLAttrTable `xml:",any,attr"`
+	ObjectGroups []*TMXObjectGroup `xml:"objectgroup"`
+	Tilesets     []*TMXTileset     `xml:"tileset"`
+	Layers       []*TMXLayer       `xml:"layer"`
 }
 
 func (tmx TMX) Orientation() TMXOrientation {
@@ -398,6 +401,86 @@ func (ts TMXTileset) Source() string {
 		}
 	}
 	return ""
+}
+
+// ======================================================
+// TMX ObjectGroups Property
+// ======================================================
+
+type TMXObjectGroup struct {
+	Attrs   TiledXMLAttrTable `xml:",any,attr"`
+	Objects []*TMXObject      `xml:"object"`
+}
+
+func (og TMXObjectGroup) ID() int {
+	if id, exists := og.Attrs[IDAttr]; exists {
+		if attr, ok := id.(AttrInt); ok {
+			return attr.Int()
+		}
+	}
+	return 0
+}
+
+func (og TMXObjectGroup) Name() string {
+	if name, exists := og.Attrs[NameAttr]; exists {
+		if attr, ok := name.(AttrString); ok {
+			return attr.String()
+		}
+	}
+	return ""
+}
+
+// ======================================================
+// TMX Object Property
+// ======================================================
+
+type TMXObject struct {
+	Attrs TiledXMLAttrTable `xml:",any,attr"`
+}
+
+func (obj TMXObject) ID() int {
+	if id, exists := obj.Attrs[IDAttr]; exists {
+		if attr, ok := id.(AttrInt); ok {
+			return attr.Int()
+		}
+	}
+	return 0
+}
+
+func (obj TMXObject) X() int {
+	if x, exists := obj.Attrs[XAttr]; exists {
+		if attr, ok := x.(AttrInt); ok {
+			return attr.Int()
+		}
+	}
+	return 0
+}
+
+func (obj TMXObject) Y() int {
+	if y, exists := obj.Attrs[YAttr]; exists {
+		if attr, ok := y.(AttrInt); ok {
+			return attr.Int()
+		}
+	}
+	return 0
+}
+
+func (obj TMXObject) Width() int {
+	if width, exists := obj.Attrs[WidthAttr]; exists {
+		if attr, ok := width.(AttrInt); ok {
+			return attr.Int()
+		}
+	}
+	return 0
+}
+
+func (obj TMXObject) Height() int {
+	if height, exists := obj.Attrs[HeightAttr]; exists {
+		if attr, ok := height.(AttrInt); ok {
+			return attr.Int()
+		}
+	}
+	return 0
 }
 
 // ======================================================
