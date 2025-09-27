@@ -7,18 +7,7 @@ import (
 	"github.com/adm87/finch-core/finch"
 )
 
-// ======================================================
-// TMX Asset Manager
-// ======================================================
-
-func RegisterTMXAssetManager() {
-	finch.RegisterAssetManager(&finch.AssetManager{
-		Types:       []finch.AssetType{"tmx"},
-		Allocator:   allocate_tmx,
-		Deallocator: deallocate_tmx,
-	})
-}
-
+// GetTMX retrieves a TMX asset by its file reference.
 func GetTMX(file finch.AssetFile) (*TMX, error) {
 	asset, err := finch.GetAsset[*TMX](file)
 	if err != nil {
@@ -27,29 +16,42 @@ func GetTMX(file finch.AssetFile) (*TMX, error) {
 	return asset, nil
 }
 
+// MustGetTMX is like GetTMX but panics if the asset cannot be loaded.
 func MustGetTMX(file finch.AssetFile) *TMX {
-	return finch.MustGetAsset[*TMX](file)
+	tmx, err := GetTMX(file)
+	if err != nil {
+		panic(err)
+	}
+	return tmx
 }
 
-func allocate_tmx(file finch.AssetFile, data []byte) (any, error) {
-	var tmx TMX
+// ======================================================
+// TMX Asset Manager
+// ======================================================
 
-	if err := xml.Unmarshal(data, &tmx); err != nil {
-		return nil, err
-	}
+func RegisterTMXAssetManager() {
+	finch.RegisterAssetManager(&finch.AssetManager{
+		Types: []finch.AssetType{"tmx"},
+		Allocator: func(file finch.AssetFile, data []byte) (any, error) {
+			var tmx TMX
 
-	for i := range tmx.Tilesets {
-		tmxDir := path.Dir(file.Path())
+			if err := xml.Unmarshal(data, &tmx); err != nil {
+				return nil, err
+			}
 
-		resolvedPath := path.Join(tmxDir, tmx.Tilesets[i].Source())
-		resolvedPath = path.Clean(resolvedPath)
+			for i := range tmx.Tilesets {
+				tmxDir := path.Dir(file.Path())
 
-		tmx.Tilesets[i].Attrs[SourceAttr] = AttrString(resolvedPath)
-	}
+				resolvedPath := path.Join(tmxDir, tmx.Tilesets[i].Source())
+				resolvedPath = path.Clean(resolvedPath)
 
-	return &tmx, nil
-}
+				tmx.Tilesets[i].Attrs[SourceAttr] = AttrString(resolvedPath)
+			}
 
-func deallocate_tmx(file finch.AssetFile, data any) error {
-	return nil
+			return &tmx, nil
+		},
+		Deallocator: func(file finch.AssetFile, data any) error {
+			return nil
+		},
+	})
 }

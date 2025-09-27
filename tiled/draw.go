@@ -10,7 +10,6 @@ import (
 	"github.com/adm87/finch-core/finch"
 	"github.com/adm87/finch-core/fsys"
 	"github.com/adm87/finch-core/geom"
-	"github.com/adm87/finch-core/images"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -89,11 +88,6 @@ func draw_map_layer(mode DrawMode, destImg *ebiten.Image, layer *TMXLayer, tiles
 	tiles := collect_tiles(layer, region, cellWidth, cellHeight, isInfinite)
 
 	for i := range tiles {
-		tsx, ok := finch.AssetFile(tiles[i].TsxSrc).MustGet().(*TSX)
-		if !ok {
-			continue
-		}
-
 		op.GeoM.Reset()
 		// Tiled anchors tiles at the bottom-left of their cell
 		// See: https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
@@ -128,7 +122,10 @@ func draw_map_layer(mode DrawMode, destImg *ebiten.Image, layer *TMXLayer, tiles
 			panic("unhandled draw mode")
 		}
 
-		srcImg := images.MustGet(finch.AssetFile(tsx.Image.Source()))
+		srcImg, err := GetTSXImg(finch.AssetFile(tiles[i].TsxSrc))
+		if err != nil {
+			return err
+		}
 
 		tilesPerRow := float64(srcImg.Bounds().Dx()) / tiles[i].Width
 		tileX := (int(tiles[i].GID) % int(tilesPerRow)) * int(tiles[i].Width)
@@ -247,7 +244,10 @@ func decode_tiles(data string, tilesets []*TMXTileset, localStartX, localStartY,
 			return nil, fmt.Errorf("no tileset found for GID %d", gid)
 		}
 
-		tsx := MustGetTSX(finch.AssetFile(tileset.Source()))
+		tsx, err := GetTSX(finch.AssetFile(tileset.Source()))
+		if err != nil {
+			return nil, err
+		}
 
 		x := float64(localStartX + ((i % cellPerRow) * cellWidth))
 		y := float64(localStartY + ((i / cellPerRow) * cellHeight))
