@@ -10,8 +10,7 @@ import (
 	"github.com/adm87/finch-core/finch"
 	"github.com/adm87/finch-core/fsys"
 	"github.com/adm87/finch-core/geom"
-	"github.com/adm87/finch-resources/images"
-	"github.com/adm87/finch-resources/resources"
+	"github.com/adm87/finch-core/images"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -90,20 +89,12 @@ func draw_map_layer(mode DrawMode, destImg *ebiten.Image, layer *TMXLayer, tiles
 	tiles := collect_tiles(layer, region, cellWidth, cellHeight, isInfinite)
 
 	for i := range tiles {
-		tsx, exists := GetTsx(resources.ResourceHandle(tiles[i].TsxKey))
-		if !exists {
-			continue
-		}
-
-		tilesetImgKey := resources.KeyFromPath(tsx.Image.Source())
-
-		srcImg, exists := images.GetImage(resources.ResourceHandle(tilesetImgKey))
-		if !exists {
+		tsx, ok := finch.AssetFile(tiles[i].TsxSrc).MustGet().(*TSX)
+		if !ok {
 			continue
 		}
 
 		op.GeoM.Reset()
-
 		// Tiled anchors tiles at the bottom-left of their cell
 		// See: https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
 		op.GeoM.Translate(0, float64(cellHeight)-tiles[i].Height)
@@ -136,6 +127,8 @@ func draw_map_layer(mode DrawMode, destImg *ebiten.Image, layer *TMXLayer, tiles
 		default:
 			panic("unhandled draw mode")
 		}
+
+		srcImg := images.MustGet(finch.AssetFile(tsx.Image.Source()))
 
 		tilesPerRow := float64(srcImg.Bounds().Dx()) / tiles[i].Width
 		tileX := (int(tiles[i].GID) % int(tilesPerRow)) * int(tiles[i].Width)
@@ -254,11 +247,7 @@ func decode_tiles(data string, tilesets []*TMXTileset, localStartX, localStartY,
 			return nil, fmt.Errorf("no tileset found for GID %d", gid)
 		}
 
-		tsxKey := resources.KeyFromPath(tileset.Source())
-		tsx, exists := GetTsx(resources.ResourceHandle(tsxKey))
-		if !exists {
-			return nil, fmt.Errorf("tileset TSX not found: %s", tileset.Source())
-		}
+		tsx := MustGetTSX(finch.AssetFile(tileset.Source()))
 
 		x := float64(localStartX + ((i % cellPerRow) * cellWidth))
 		y := float64(localStartY + ((i / cellPerRow) * cellHeight))
@@ -271,7 +260,7 @@ func decode_tiles(data string, tilesets []*TMXTileset, localStartX, localStartY,
 		tiles = append(tiles, &Tile{
 			Flags:  flags,
 			GID:    gid - tileset.FirstGID(),
-			TsxKey: resources.KeyFromPath(tileset.Source()),
+			TsxSrc: tileset.Source(),
 			X:      x,
 			Y:      y,
 			Width:  float64(tsx.TileWidth()),

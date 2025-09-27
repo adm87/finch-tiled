@@ -34,7 +34,7 @@ const (
 
 type Tile struct {
 	GID           uint32
-	TsxKey        string
+	TsxSrc        string
 	X, Y          float64
 	Width, Height float64
 	Flags         TiledFlags
