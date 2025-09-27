@@ -89,9 +89,6 @@ func draw_map_layer(mode DrawMode, destImg *ebiten.Image, layer *TMXLayer, tiles
 
 	for i := range tiles {
 		op.GeoM.Reset()
-		// Tiled anchors tiles at the bottom-left of their cell
-		// See: https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
-		op.GeoM.Translate(0, float64(cellHeight)-tiles[i].Height)
 
 		// The order of operations is important here.
 		// See: https://doc.mapeditor.org/en/stable/reference/global-tile-ids/#tile-flipping
@@ -257,6 +254,11 @@ func decode_tiles(data string, tilesets []*TMXTileset, localStartX, localStartY,
 			y += float64(tsx.TileOffset.Y())
 		}
 
+		// Tiled anchors tiles at the bottom-left of their cell.
+		// Adjust the Y position to offset the tile by the difference between the cell and tile's heights.
+		// See: https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
+		y += float64(cellHeight) - float64(tsx.TileHeight())
+
 		tiles = append(tiles, &Tile{
 			Flags:  flags,
 			GID:    gid - tileset.FirstGID(),
@@ -309,8 +311,8 @@ func collect_tiles(layer *TMXLayer, region *geom.Rect64, cellWidth, cellHeight i
 	for i := range tiles {
 		tminx := tiles[i].X
 		tminy := tiles[i].Y
-		tmaxx := tiles[i].X + float64(cellWidth)
-		tmaxy := tiles[i].Y + float64(cellHeight)
+		tmaxx := tiles[i].X + float64(tiles[i].Width)
+		tmaxy := tiles[i].Y + float64(tiles[i].Height)
 
 		if tmaxx < minx || tminx > maxx || tmaxy < miny || tminy > maxy {
 			continue
