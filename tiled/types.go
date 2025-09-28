@@ -377,6 +377,24 @@ func (tmx TMX) FindTilesetByTileGID(gid uint32) (*TMXTileset, bool) {
 	return nil, false
 }
 
+func (tmx TMX) GetLayerByName(name string) (*TMXLayer, bool) {
+	for _, layer := range tmx.Layers {
+		if layer.Name() == name {
+			return layer, true
+		}
+	}
+	return nil, false
+}
+
+func (tmx TMX) GetObjectGroupByName(name string) (*TMXObjectGroup, bool) {
+	for _, objectGroup := range tmx.ObjectGroups {
+		if objectGroup.Name() == name {
+			return objectGroup, true
+		}
+	}
+	return nil, false
+}
+
 // ======================================================
 // TMX Tileset Property
 // ======================================================

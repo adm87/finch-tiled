@@ -13,9 +13,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// TASK: Implement a draw function that allows rendering individual layers.
-//       - This will be needed to allowing dynamic sprites to be drawn between background and foreground layers.
-
 // TASK: Implement support for all encoding/compression types Tiled supports.
 //       - Probably a good idea to support as many features of Tiled as possible - this goes beyond just encoding/compression.
 
@@ -54,12 +51,38 @@ func Draw(ctx finch.Context, img *ebiten.Image, tmx *TMX) {
 	}
 }
 
+// DrawLayer attempts to render a specific layer of the TMX map onto the provided image.
+// If the map is larger than the image, only the top-left portion will be drawn.
+func DrawLayer(ctx finch.Context, img *ebiten.Image, tmx *TMX, layerName string) {
+	layer, ok := tmx.GetLayerByName(layerName)
+	if !ok {
+		ctx.Logger().Warn("tiled: layer not found", slog.String("layer", layerName))
+		return
+	}
+	region := geom.NewRect64(0, 0, float64(img.Bounds().Dx()), float64(img.Bounds().Dy()))
+	if err := draw_map_layer(DrawModeNormal, img, layer, tmx.Tilesets, &region, identity, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
+		ctx.Logger().Error(ErrWhileDrawingLayer, slog.String("layer", layer.Name()), slog.Any("error", err))
+	}
+}
+
 // DrawRegion renders only the specified region of the TMX map onto the provided image.
 func DrawRegion(ctx finch.Context, img *ebiten.Image, tmx *TMX, region geom.Rect64) {
 	for i := range tmx.Layers {
 		if err := draw_map_layer(DrawModeRegional, img, tmx.Layers[i], tmx.Tilesets, &region, identity, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
 			ctx.Logger().Error(ErrWhileDrawingLayer, slog.String("layer", tmx.Layers[i].Name()), slog.Any("error", err))
 		}
+	}
+}
+
+// DrawLayerRegion renders only the specified region of a specific layer of the TMX map onto the provided image.
+func DrawLayerRegion(ctx finch.Context, img *ebiten.Image, tmx *TMX, layerName string, region geom.Rect64) {
+	layer, ok := tmx.GetLayerByName(layerName)
+	if !ok {
+		ctx.Logger().Warn("tiled: layer not found", slog.String("layer", layerName))
+		return
+	}
+	if err := draw_map_layer(DrawModeRegional, img, layer, tmx.Tilesets, &region, identity, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
+		ctx.Logger().Error(ErrWhileDrawingLayer, slog.String("layer", layer.Name()), slog.Any("error", err))
 	}
 }
 
@@ -70,6 +93,19 @@ func DrawScene(ctx finch.Context, img *ebiten.Image, tmx *TMX, viewport geom.Rec
 		if err := draw_map_layer(DrawModeScene, img, tmx.Layers[i], tmx.Tilesets, &viewport, &viewMatrix, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
 			ctx.Logger().Error(ErrWhileDrawingLayer, slog.String("layer", tmx.Layers[i].Name()), slog.Any("error", err))
 		}
+	}
+}
+
+// DrawSceneLayer renders a specific layer of the TMX map as seen through a camera, using the provided viewport and view matrix.
+// This is typically used for rendering the map in a game scene where the camera can move and zoom.
+func DrawSceneLayer(ctx finch.Context, img *ebiten.Image, tmx *TMX, layerName string, viewport geom.Rect64, viewMatrix ebiten.GeoM) {
+	layer, ok := tmx.GetLayerByName(layerName)
+	if !ok {
+		ctx.Logger().Warn("tiled: layer not found", slog.String("layer", layerName))
+		return
+	}
+	if err := draw_map_layer(DrawModeScene, img, layer, tmx.Tilesets, &viewport, &viewMatrix, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
+		ctx.Logger().Error(ErrWhileDrawingLayer, slog.String("layer", layer.Name()), slog.Any("error", err))
 	}
 }
 
