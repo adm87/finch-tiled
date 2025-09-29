@@ -215,7 +215,7 @@ func process_chunks(layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64
 		}
 
 		chunkRect := geom.NewRect64(cminx, cminy, cmaxx-cminx, cmaxy-cminy)
-		if _, exists := layer.partitions[chunkRect]; exists || !region.Intersects(&chunkRect) {
+		if _, exists := layer.partitions[chunkRect]; exists || !region.Intersects(chunkRect) {
 			continue
 		}
 
@@ -333,7 +333,7 @@ func collect_tiles(layer *TMXLayer, region *geom.Rect64, cellWidth, cellHeight i
 	tiles := layer.tiles
 	if isInfinite {
 		for chunkRect, chunkTiles := range layer.partitions {
-			if region.Intersects(&chunkRect) {
+			if region.Intersects(chunkRect) {
 				tiles = append(tiles, chunkTiles...)
 			}
 		}

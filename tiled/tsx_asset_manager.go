@@ -2,12 +2,41 @@ package tiled
 
 import (
 	"encoding/xml"
+	"fmt"
 	"path"
 
 	"github.com/adm87/finch-core/finch"
-	"github.com/adm87/finch-core/images"
 	"github.com/hajimehoshi/ebiten/v2"
 )
+
+func RegisterTSXAssetManager() {
+	finch.RegisterAssetManager(&finch.AssetManager{
+		AssetTypes: []finch.AssetType{"tsx"},
+		ProcessAssetFile: func(file finch.AssetFile, data []byte) (any, error) {
+			var tsx TSX
+
+			if err := xml.Unmarshal(data, &tsx); err != nil {
+				return nil, err
+			}
+
+			// Resolve the relative path of the image within the TSX file to be absolute
+			// based on the location of the TSX file itself.
+
+			tsxDir := path.Dir(file.Path())
+
+			resolvedPath := path.Join(tsxDir, tsx.Image.Source())
+			resolvedPath = path.Clean(resolvedPath)
+
+			tsx.Image.Attrs[SourceAttr] = AttrString(resolvedPath)
+
+			return &tsx, nil
+		},
+		CleanupAssetFile: func(file finch.AssetFile, data any) error {
+			// Nothing special needs to be done to clean up a TSX asset.
+			return nil
+		},
+	})
+}
 
 // GetTSX retrieves a TSX asset by its file reference.
 func GetTSX(file finch.AssetFile) (*TSX, error) {
@@ -24,10 +53,19 @@ func GetTSXImg(file finch.AssetFile) (*ebiten.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	img, err := images.Get(finch.AssetFile(tsx.Image.Source()))
+
+	imgFile := finch.AssetFile(tsx.Image.Source())
+
+	imgAsset, err := imgFile.Get()
 	if err != nil {
 		return nil, err
 	}
+
+	img, ok := imgAsset.(*ebiten.Image)
+	if !ok {
+		return nil, fmt.Errorf("could not retrieve tsx image from asset file: %s", imgFile.Path())
+	}
+
 	return img, nil
 }
 
@@ -47,33 +85,4 @@ func MustGetTSXImg(src string) *ebiten.Image {
 		panic(err)
 	}
 	return img
-}
-
-// ======================================================
-// TSX Asset Manager
-// ======================================================
-
-func RegisterTSXAssetManager() {
-	finch.RegisterAssetManager(&finch.AssetManager{
-		Types: []finch.AssetType{"tsx"},
-		Allocator: func(file finch.AssetFile, data []byte) (any, error) {
-			var tsx TSX
-
-			if err := xml.Unmarshal(data, &tsx); err != nil {
-				return nil, err
-			}
-
-			tsxDir := path.Dir(file.Path())
-
-			resolvedPath := path.Join(tsxDir, tsx.Image.Source())
-			resolvedPath = path.Clean(resolvedPath)
-
-			tsx.Image.Attrs[SourceAttr] = AttrString(resolvedPath)
-
-			return &tsx, nil
-		},
-		Deallocator: func(file finch.AssetFile, data any) error {
-			return nil
-		},
-	})
 }
