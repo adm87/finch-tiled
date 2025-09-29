@@ -45,7 +45,7 @@ var op = &ebiten.DrawImageOptions{}
 func Draw(ctx finch.Context, img *ebiten.Image, tmx *TMX) {
 	region := geom.NewRect64(0, 0, float64(img.Bounds().Dx()), float64(img.Bounds().Dy()))
 	for i := range tmx.Layers {
-		if err := draw_map_layer(DrawModeNormal, img, tmx.Layers[i], tmx.Tilesets, &region, identity, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
+		if err := drawMapLayer(DrawModeNormal, img, tmx.Layers[i], tmx.Tilesets, &region, identity, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
 			ctx.Logger().Error(ErrWhileDrawingLayer, slog.String("layer", tmx.Layers[i].Name()), slog.Any("error", err))
 		}
 	}
@@ -60,7 +60,7 @@ func DrawLayer(ctx finch.Context, img *ebiten.Image, tmx *TMX, layerName string)
 		return
 	}
 	region := geom.NewRect64(0, 0, float64(img.Bounds().Dx()), float64(img.Bounds().Dy()))
-	if err := draw_map_layer(DrawModeNormal, img, layer, tmx.Tilesets, &region, identity, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
+	if err := drawMapLayer(DrawModeNormal, img, layer, tmx.Tilesets, &region, identity, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
 		ctx.Logger().Error(ErrWhileDrawingLayer, slog.String("layer", layer.Name()), slog.Any("error", err))
 	}
 }
@@ -68,7 +68,7 @@ func DrawLayer(ctx finch.Context, img *ebiten.Image, tmx *TMX, layerName string)
 // DrawRegion renders only the specified region of the TMX map onto the provided image.
 func DrawRegion(ctx finch.Context, img *ebiten.Image, tmx *TMX, region geom.Rect64) {
 	for i := range tmx.Layers {
-		if err := draw_map_layer(DrawModeRegional, img, tmx.Layers[i], tmx.Tilesets, &region, identity, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
+		if err := drawMapLayer(DrawModeRegional, img, tmx.Layers[i], tmx.Tilesets, &region, identity, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
 			ctx.Logger().Error(ErrWhileDrawingLayer, slog.String("layer", tmx.Layers[i].Name()), slog.Any("error", err))
 		}
 	}
@@ -81,7 +81,7 @@ func DrawLayerRegion(ctx finch.Context, img *ebiten.Image, tmx *TMX, layerName s
 		ctx.Logger().Warn("tiled: layer not found", slog.String("layer", layerName))
 		return
 	}
-	if err := draw_map_layer(DrawModeRegional, img, layer, tmx.Tilesets, &region, identity, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
+	if err := drawMapLayer(DrawModeRegional, img, layer, tmx.Tilesets, &region, identity, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
 		ctx.Logger().Error(ErrWhileDrawingLayer, slog.String("layer", layer.Name()), slog.Any("error", err))
 	}
 }
@@ -90,7 +90,7 @@ func DrawLayerRegion(ctx finch.Context, img *ebiten.Image, tmx *TMX, layerName s
 // This is typically used for rendering the map in a game scene where the camera can move and zoom.
 func DrawScene(ctx finch.Context, img *ebiten.Image, tmx *TMX, viewport geom.Rect64, viewMatrix ebiten.GeoM) {
 	for i := range tmx.Layers {
-		if err := draw_map_layer(DrawModeScene, img, tmx.Layers[i], tmx.Tilesets, &viewport, &viewMatrix, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
+		if err := drawMapLayer(DrawModeScene, img, tmx.Layers[i], tmx.Tilesets, &viewport, &viewMatrix, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
 			ctx.Logger().Error(ErrWhileDrawingLayer, slog.String("layer", tmx.Layers[i].Name()), slog.Any("error", err))
 		}
 	}
@@ -104,12 +104,12 @@ func DrawSceneLayer(ctx finch.Context, img *ebiten.Image, tmx *TMX, layerName st
 		ctx.Logger().Warn("tiled: layer not found", slog.String("layer", layerName))
 		return
 	}
-	if err := draw_map_layer(DrawModeScene, img, layer, tmx.Tilesets, &viewport, &viewMatrix, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
+	if err := drawMapLayer(DrawModeScene, img, layer, tmx.Tilesets, &viewport, &viewMatrix, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
 		ctx.Logger().Error(ErrWhileDrawingLayer, slog.String("layer", layer.Name()), slog.Any("error", err))
 	}
 }
 
-func draw_map_layer(mode DrawMode, destImg *ebiten.Image, layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64, view *ebiten.GeoM, cellWidth, cellHeight int, isInfinite bool) error {
+func drawMapLayer(mode DrawMode, destImg *ebiten.Image, layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64, view *ebiten.GeoM, cellWidth, cellHeight int, isInfinite bool) error {
 	if !layer.IsVisible() || len(tilesets) == 0 {
 		return nil
 	}
@@ -117,11 +117,11 @@ func draw_map_layer(mode DrawMode, destImg *ebiten.Image, layer *TMXLayer, tiles
 	layerWidth := layer.Width() * cellWidth
 	layerHeight := layer.Height() * cellHeight
 
-	if err := process_tiles(layer, tilesets, region, layerWidth, layerHeight, cellWidth, cellHeight, isInfinite); err != nil {
+	if err := processTiles(layer, tilesets, region, layerWidth, layerHeight, cellWidth, cellHeight, isInfinite); err != nil {
 		return err
 	}
 
-	tiles := collect_tiles(layer, region, cellWidth, cellHeight, isInfinite)
+	tiles := collectTiles(layer, region, cellWidth, cellHeight, isInfinite)
 
 	for i := range tiles {
 		op.GeoM.Reset()
@@ -170,9 +170,9 @@ func draw_map_layer(mode DrawMode, destImg *ebiten.Image, layer *TMXLayer, tiles
 	return nil
 }
 
-func process_tiles(layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64, layerWidth, layerHeight, cellWidth, cellHeight int, isInfinite bool) error {
+func processTiles(layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64, layerWidth, layerHeight, cellWidth, cellHeight int, isInfinite bool) error {
 	if isInfinite {
-		return process_chunks(layer, tilesets, region, layerWidth, layerHeight, cellWidth, cellHeight)
+		return processChunks(layer, tilesets, region, layerWidth, layerHeight, cellWidth, cellHeight)
 	}
 
 	// Already processed
@@ -180,7 +180,7 @@ func process_tiles(layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64,
 		return nil
 	}
 
-	tiles, err := decode_tiles(layer.Data.Data, tilesets, 0, 0, layerWidth, layerHeight, cellWidth, cellHeight)
+	tiles, err := decodeTiles(layer.Data.Data, tilesets, 0, 0, layerWidth, layerHeight, cellWidth, cellHeight)
 	if err != nil {
 		return err
 	}
@@ -189,7 +189,7 @@ func process_tiles(layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64,
 	return nil
 }
 
-func process_chunks(layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64, layerWidth, layerHeight, cellWidth, cellHeight int) error {
+func processChunks(layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64, layerWidth, layerHeight, cellWidth, cellHeight int) error {
 	if layer.Data == nil || len(layer.Data.Chunks) == 0 {
 		return nil
 	}
@@ -219,7 +219,7 @@ func process_chunks(layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64
 			continue
 		}
 
-		tiles, err := decode_tiles(chunk.Data, tilesets, int(chunkX), int(chunkY), int(chunkW), int(chunkH), cellWidth, cellHeight)
+		tiles, err := decodeTiles(chunk.Data, tilesets, int(chunkX), int(chunkY), int(chunkW), int(chunkH), cellWidth, cellHeight)
 		if err != nil {
 			return err
 		}
@@ -230,8 +230,8 @@ func process_chunks(layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64
 	return nil
 }
 
-func decode_tiles(data string, tilesets []*TMXTileset, localStartX, localStartY, layerWidth, layerHeight, cellWidth, cellHeight int) ([]*Tile, error) {
-	parsedData, err := parse_csv_data(data)
+func decodeTiles(data string, tilesets []*TMXTileset, localStartX, localStartY, layerWidth, layerHeight, cellWidth, cellHeight int) ([]*Tile, error) {
+	parsedData, err := parseCsvData(data)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +309,7 @@ func decode_tiles(data string, tilesets []*TMXTileset, localStartX, localStartY,
 	return tiles, nil
 }
 
-func parse_csv_data(dataStr string) ([]uint32, error) {
+func parseCsvData(dataStr string) ([]uint32, error) {
 	var data []uint32
 	for _, s := range strings.Split(dataStr, ",") {
 		s = strings.TrimSpace(s)
@@ -325,7 +325,7 @@ func parse_csv_data(dataStr string) ([]uint32, error) {
 	return data, nil
 }
 
-func collect_tiles(layer *TMXLayer, region *geom.Rect64, cellWidth, cellHeight int, isInfinite bool) []*Tile {
+func collectTiles(layer *TMXLayer, region *geom.Rect64, cellWidth, cellHeight int, isInfinite bool) []*Tile {
 	if layer.tiles == nil && layer.partitions == nil {
 		return nil
 	}
