@@ -115,8 +115,6 @@ const (
 	NameAttr         = "name"
 	NextLayerIDAttr  = "nextlayerid"
 	NextObjectIDAttr = "nextobjectid"
-	object           = "object"
-	objectgroup      = "objectgroup"
 	OrientationAttr  = "orientation"
 	RenderOrderAttr  = "renderorder"
 	SourceAttr       = "source"

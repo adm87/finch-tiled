@@ -7,8 +7,8 @@
 
 !LICENSE
 
-!module/
-!module/**/*
+!project/
+!project/**/*
 
 !tiled/
 !tiled/**/*
