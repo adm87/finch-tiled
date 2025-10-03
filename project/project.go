@@ -35,9 +35,10 @@ type TiledClassPropertyType struct {
 }
 
 type TiledClassMember struct {
-	Name  string `json:"name"`
-	Type  string `json:"type"`
-	Value any    `json:"value"`
+	Name         string `json:"name"`
+	Type         string `json:"type"`
+	PropertyType string `json:"propertyType,omitempty"`
+	Value        any    `json:"value"`
 }
 
 type TiledClassUseAs string

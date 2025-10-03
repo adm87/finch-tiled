@@ -7,7 +7,7 @@ import (
 )
 
 func RegisterAssetImporter() {
-	finch.RegisterAssetImporter(&finch.AssetManager{
+	finch.RegisterAssetImporter(&finch.AssetImporter{
 		AssetTypes: []finch.AssetType{"tiled-project"},
 		ProcessAssetFile: func(file finch.AssetFile, data []byte) (any, error) {
 			project := &TiledProject{}

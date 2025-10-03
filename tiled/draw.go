@@ -14,16 +14,16 @@ import (
 )
 
 // TASK: Implement support for all encoding/compression types Tiled supports.
-//       - Probably a good idea to support as many features of Tiled as possible - this goes beyond just encoding/compression.
-
-// TASK: Implement support for object layers.
-//       - This will be needed to define dynamic collision areas, spawn points, and other interactive elements in a game.
+//     - Probably a good idea to support as many features of Tiled as possible - this goes beyond just encoding/compression.
 
 // TASK: Implement support for isometric and staggered maps.
-//       - This early in development, it's really just a nice to have - but would be useful for certain types of games.
+//     - This early in development, it's really just a nice to have - but would be useful for certain types of games.
 
 // TASK: Implement support for dynamically modifying tilemaps (e.g., changing tiles at runtime).
-//       - Another nice to have, but could be useful for games that feature destructible environments or tile-based puzzles.
+//     - Another nice to have, but could be useful for games that feature destructible environments or tile-based puzzles.
+
+// TASK: Implement pooling
+//	   - Tile objects are currently allocated on each draw call. This is inefficient and could be improved with object pooling.
 
 const (
 	ErrWhileDrawingLayer = "tiled: error while drawing layer"
@@ -109,7 +109,7 @@ func DrawSceneLayer(ctx finch.Context, img *ebiten.Image, tmx *TMX, layerName st
 	}
 }
 
-func drawMapLayer(mode DrawMode, destImg *ebiten.Image, layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64, view *ebiten.GeoM, cellWidth, cellHeight int, isInfinite bool) error {
+func drawMapLayer(mode DrawMode, destImg *ebiten.Image, layer *Layer, tilesets []*Tileset, region *geom.Rect64, view *ebiten.GeoM, cellWidth, cellHeight int, isInfinite bool) error {
 	if !layer.IsVisible() || len(tilesets) == 0 {
 		return nil
 	}
@@ -170,7 +170,7 @@ func drawMapLayer(mode DrawMode, destImg *ebiten.Image, layer *TMXLayer, tileset
 	return nil
 }
 
-func processTiles(layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64, layerWidth, layerHeight, cellWidth, cellHeight int, isInfinite bool) error {
+func processTiles(layer *Layer, tilesets []*Tileset, region *geom.Rect64, layerWidth, layerHeight, cellWidth, cellHeight int, isInfinite bool) error {
 	if isInfinite {
 		return processChunks(layer, tilesets, region, layerWidth, layerHeight, cellWidth, cellHeight)
 	}
@@ -189,7 +189,7 @@ func processTiles(layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64, 
 	return nil
 }
 
-func processChunks(layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64, layerWidth, layerHeight, cellWidth, cellHeight int) error {
+func processChunks(layer *Layer, tilesets []*Tileset, region *geom.Rect64, layerWidth, layerHeight, cellWidth, cellHeight int) error {
 	if layer.Data == nil || len(layer.Data.Chunks) == 0 {
 		return nil
 	}
@@ -230,7 +230,7 @@ func processChunks(layer *TMXLayer, tilesets []*TMXTileset, region *geom.Rect64,
 	return nil
 }
 
-func decodeTiles(data string, tilesets []*TMXTileset, localStartX, localStartY, layerWidth, layerHeight, cellWidth, cellHeight int) ([]*Tile, error) {
+func decodeTiles(data string, tilesets []*Tileset, localStartX, localStartY, layerWidth, layerHeight, cellWidth, cellHeight int) ([]*Tile, error) {
 	parsedData, err := parseCsvData(data)
 	if err != nil {
 		return nil, err
@@ -246,7 +246,7 @@ func decodeTiles(data string, tilesets []*TMXTileset, localStartX, localStartY, 
 			continue // Empty tile
 		}
 
-		var flags TiledFlags
+		var flags FlipFlags
 		if (parsedData[i] & TILE_FLIP_HORIZONTAL) != 0 {
 			flags |= FLIP_HORIZONTAL
 		}
@@ -265,7 +265,7 @@ func decodeTiles(data string, tilesets []*TMXTileset, localStartX, localStartY, 
 			flags |= FLIP_ROTATED_HEX
 		}
 
-		var tileset *TMXTileset
+		var tileset *Tileset
 		for j := len(tilesets) - 1; j >= 0; j-- {
 			if gid >= tilesets[j].FirstGID() {
 				tileset = tilesets[j]
@@ -325,7 +325,7 @@ func parseCsvData(dataStr string) ([]uint32, error) {
 	return data, nil
 }
 
-func collectTiles(layer *TMXLayer, region *geom.Rect64, cellWidth, cellHeight int, isInfinite bool) []*Tile {
+func collectTiles(layer *Layer, region *geom.Rect64, cellWidth, cellHeight int, isInfinite bool) []*Tile {
 	if layer.tiles == nil && layer.partitions == nil {
 		return nil
 	}

@@ -6,8 +6,8 @@ package tiled
 
 type TSX struct {
 	Attrs      TiledXMLAttrTable `xml:",any,attr"`
-	TileOffset *TSXTileOffset    `xml:"tileoffset"`
-	Image      *TSXImage         `xml:"image"`
+	TileOffset *Offset           `xml:"tileoffset"`
+	Image      *Image            `xml:"image"`
 }
 
 func (tsx TSX) Version() string {
@@ -76,67 +76,6 @@ func (tsx TSX) TileCount() int {
 func (tsx TSX) Columns() int {
 	if columns, exists := tsx.Attrs[ColumnsAttr]; exists {
 		if attr, ok := columns.(AttrInt); ok {
-			return attr.Int()
-		}
-	}
-	return 0
-}
-
-// ======================================================
-// TSX TileOffset Property
-// ======================================================
-
-type TSXTileOffset struct {
-	Attrs TiledXMLAttrTable `xml:",any,attr"`
-}
-
-func (offset TSXTileOffset) X() int {
-	if x, exists := offset.Attrs[XAttr]; exists {
-		if attr, ok := x.(AttrInt); ok {
-			return attr.Int()
-		}
-	}
-	return 0
-}
-
-func (offset TSXTileOffset) Y() int {
-	if y, exists := offset.Attrs[YAttr]; exists {
-		if attr, ok := y.(AttrInt); ok {
-			return attr.Int()
-		}
-	}
-	return 0
-}
-
-// ======================================================
-// TSX Image Property
-// ======================================================
-
-type TSXImage struct {
-	Attrs TiledXMLAttrTable `xml:",any,attr"`
-}
-
-func (img TSXImage) Source() string {
-	if source, exists := img.Attrs[SourceAttr]; exists {
-		if attr, ok := source.(AttrString); ok {
-			return attr.String()
-		}
-	}
-	return ""
-}
-
-func (img TSXImage) Width() int {
-	if width, exists := img.Attrs[WidthAttr]; exists {
-		if attr, ok := width.(AttrInt); ok {
-			return attr.Int()
-		}
-	}
-	return 0
-}
-
-func (img TSXImage) Height() int {
-	if height, exists := img.Attrs[HeightAttr]; exists {
-		if attr, ok := height.(AttrInt); ok {
 			return attr.Int()
 		}
 	}
