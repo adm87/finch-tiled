@@ -96,6 +96,10 @@ func (i AttrInt) Int() int {
 	return int(i)
 }
 
+func (i AttrInt) String() string {
+	return fmt.Sprintf("%d", i)
+}
+
 // ======================================================
 // Boolean Attribute
 // ======================================================
@@ -118,11 +122,20 @@ func (b AttrBool) Bool() bool {
 	return bool(b)
 }
 
+func (b AttrBool) String() string {
+	if b {
+		return "true"
+	}
+	return "false"
+}
+
 // ======================================================
 // Tiled XML Attribute Table
 // ======================================================
 
-type TiledXMLAttr any
+type TiledXMLAttr interface {
+	String() string
+}
 type TiledXMLAttrTable map[string]TiledXMLAttr
 
 const (
@@ -463,6 +476,15 @@ func (chunk DataChunk) Height() int {
 	return 0
 }
 
+func (chunk DataChunk) Bounds() geom.Rect64 {
+	return geom.NewRect64(
+		float64(chunk.X()),
+		float64(chunk.Y()),
+		float64(chunk.X()+chunk.Width()),
+		float64(chunk.Y()+chunk.Height()),
+	)
+}
+
 // ======================================================
 // Layer
 // ======================================================
@@ -521,13 +543,29 @@ func (layer Layer) IsVisible() bool {
 	return true
 }
 
+func (layer Layer) Bounds() geom.Rect64 {
+	if layer.Data == nil {
+		return geom.Rect64{}
+	}
+
+	if len(layer.Data.Chunks) > 0 {
+		bounds := geom.Rect64{}
+		for _, chunk := range layer.Data.Chunks {
+			bounds = bounds.Union(chunk.Bounds())
+		}
+		return bounds
+	}
+
+	return geom.NewRect64(0, 0, float64(layer.Width()), float64(layer.Height()))
+}
+
 // ======================================================
 // Property
 // ======================================================
 
 type Property struct {
 	Attrs      TiledXMLAttrTable `xml:",any,attr"`
-	Properties []*Property       `xml:"property"`
+	Properties []*Property       `xml:"properties>property"`
 }
 
 func (prop Property) Name() string {

@@ -1,6 +1,9 @@
 package tiled
 
-import "github.com/adm87/finch-core/enum"
+import (
+	"github.com/adm87/finch-core/enum"
+	"github.com/adm87/finch-core/geom"
+)
 
 // ======================================================
 // TMX File
@@ -146,4 +149,25 @@ func (tmx TMX) GetObjectGroupByName(name string) (*ObjectGroup, bool) {
 		}
 	}
 	return nil, false
+}
+
+func (tmx TMX) Bounds() geom.Rect64 {
+	bounds := geom.Rect64{}
+
+	if len(tmx.Layers) == 0 {
+		return bounds
+	}
+
+	if tmx.IsInfinite() {
+		for _, layer := range tmx.Layers {
+			bounds = bounds.Union(layer.Bounds())
+		}
+	} else {
+		bounds = geom.NewRect64(0, 0, float64(tmx.Width()), float64(tmx.Height()))
+	}
+
+	bounds.Width *= float64(tmx.TileWidth())
+	bounds.Height *= float64(tmx.TileHeight())
+
+	return bounds
 }
