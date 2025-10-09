@@ -106,49 +106,44 @@ func (tmx TMX) IsInfinite() bool {
 	return false
 }
 
-func (tmx TMX) NextLayerID() int {
-	if nextLayerID, exists := tmx.Attrs[NextLayerIDAttr]; exists {
-		if attr, ok := nextLayerID.(AttrInt); ok {
-			return attr.Int()
-		}
-	}
-	return 0
-}
-
-func (tmx TMX) NextObjectID() int {
-	if nextObjectID, exists := tmx.Attrs[NextObjectIDAttr]; exists {
-		if attr, ok := nextObjectID.(AttrInt); ok {
-			return attr.Int()
-		}
-	}
-	return 0
-}
-
-func (tmx TMX) FindTilesetByTileGID(gid uint32) (*Tileset, bool) {
-	for i := len(tmx.Tilesets) - 1; i >= 0; i-- {
-		if tmx.Tilesets[i].FirstGID() <= gid {
-			return tmx.Tilesets[i], true
-		}
-	}
-	return nil, false
-}
-
-func (tmx TMX) GetLayerByName(name string) (*Layer, bool) {
+func (tmx TMX) LayerByName(name string) *Layer {
 	for _, layer := range tmx.Layers {
 		if layer.Name() == name {
-			return layer, true
+			return layer
 		}
 	}
-	return nil, false
+	return nil
 }
 
-func (tmx TMX) GetObjectGroupByName(name string) (*ObjectGroup, bool) {
-	for _, objectGroup := range tmx.ObjectGroups {
-		if objectGroup.Name() == name {
-			return objectGroup, true
+func (tmx TMX) LayerByProperty(ptype string, pvalue any) *Layer {
+	for _, layer := range tmx.Layers {
+		if prop, exists := layer.PropertyOfType(ptype); exists {
+			if prop.Value() == pvalue {
+				return layer
+			}
 		}
 	}
-	return nil, false
+	return nil
+}
+
+func (tmx TMX) ObjectGroupByName(name string) *ObjectGroup {
+	for _, og := range tmx.ObjectGroups {
+		if og.Name() == name {
+			return og
+		}
+	}
+	return nil
+}
+
+func (tmx TMX) ObjectGroupByProperty(ptype string, pvalue any) *ObjectGroup {
+	for _, og := range tmx.ObjectGroups {
+		if prop, exists := og.PropertyOfType(ptype); exists {
+			if prop.Value() == pvalue {
+				return og
+			}
+		}
+	}
+	return nil
 }
 
 func (tmx TMX) Bounds() geom.Rect64 {
@@ -166,6 +161,8 @@ func (tmx TMX) Bounds() geom.Rect64 {
 		bounds = geom.NewRect64(0, 0, float64(tmx.Width()), float64(tmx.Height()))
 	}
 
+	bounds.X *= float64(tmx.TileWidth())
+	bounds.Y *= float64(tmx.TileHeight())
 	bounds.Width *= float64(tmx.TileWidth())
 	bounds.Height *= float64(tmx.TileHeight())
 

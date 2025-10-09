@@ -1,5 +1,7 @@
 package tiled
 
+import "github.com/adm87/finch-core/geom"
+
 // ======================================================
 // TSX File
 // ======================================================
@@ -80,4 +82,22 @@ func (tsx TSX) Columns() int {
 		}
 	}
 	return 0
+}
+
+func (tsx TSX) TileOffsetX() int {
+	if x := tsx.TileOffset; x != nil {
+		return x.X()
+	}
+	return 0
+}
+
+func (tsx TSX) TileOffsetY() int {
+	if y := tsx.TileOffset; y != nil {
+		return y.Y()
+	}
+	return 0
+}
+
+func (tsx TSX) ObjectAlignment() geom.Point64 {
+	return geom.NewPoint64(0, 0)
 }

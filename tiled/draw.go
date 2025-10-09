@@ -22,8 +22,9 @@ import (
 // TASK: Implement support for dynamically modifying tilemaps (e.g., changing tiles at runtime).
 //     - Another nice to have, but could be useful for games that feature destructible environments or tile-based puzzles.
 
-// TASK: Implement pooling
-//	   - Tile objects are currently allocated on each draw call. This is inefficient and could be improved with object pooling.
+// TASK: Implement new core hashgrid to optimize chunk and tile selection
+
+// TASK: Look into caching
 
 const (
 	ErrWhileDrawingLayer = "tiled: error while drawing layer"
@@ -54,8 +55,8 @@ func Draw(ctx finch.Context, img *ebiten.Image, tmx *TMX) {
 // DrawLayer attempts to render a specific layer of the TMX map onto the provided image.
 // If the map is larger than the image, only the top-left portion will be drawn.
 func DrawLayer(ctx finch.Context, img *ebiten.Image, tmx *TMX, layerName string) {
-	layer, ok := tmx.GetLayerByName(layerName)
-	if !ok {
+	layer := tmx.LayerByName(layerName)
+	if layer == nil {
 		ctx.Logger().Warn("tiled: layer not found", slog.String("layer", layerName))
 		return
 	}
@@ -76,8 +77,8 @@ func DrawRegion(ctx finch.Context, img *ebiten.Image, tmx *TMX, region geom.Rect
 
 // DrawLayerRegion renders only the specified region of a specific layer of the TMX map onto the provided image.
 func DrawLayerRegion(ctx finch.Context, img *ebiten.Image, tmx *TMX, layerName string, region geom.Rect64) {
-	layer, ok := tmx.GetLayerByName(layerName)
-	if !ok {
+	layer := tmx.LayerByName(layerName)
+	if layer == nil {
 		ctx.Logger().Warn("tiled: layer not found", slog.String("layer", layerName))
 		return
 	}
@@ -99,13 +100,44 @@ func DrawScene(ctx finch.Context, img *ebiten.Image, tmx *TMX, viewport geom.Rec
 // DrawSceneLayer renders a specific layer of the TMX map as seen through a camera, using the provided viewport and view matrix.
 // This is typically used for rendering the map in a game scene where the camera can move and zoom.
 func DrawSceneLayer(ctx finch.Context, img *ebiten.Image, tmx *TMX, layerName string, viewport geom.Rect64, viewMatrix ebiten.GeoM) {
-	layer, ok := tmx.GetLayerByName(layerName)
-	if !ok {
+	layer := tmx.LayerByName(layerName)
+	if layer == nil {
 		ctx.Logger().Warn("tiled: layer not found", slog.String("layer", layerName))
 		return
 	}
 	if err := drawMapLayer(DrawModeScene, img, layer, tmx.Tilesets, &viewport, &viewMatrix, tmx.TileWidth(), tmx.TileHeight(), tmx.IsInfinite()); err != nil {
 		ctx.Logger().Error(ErrWhileDrawingLayer, slog.String("layer", layer.Name()), slog.Any("error", err))
+	}
+}
+
+// DrawObject renders a specific drawable object from the TMX map using the provided view matrix.
+func DrawObject(ctx finch.Context, img *ebiten.Image, tmx *TMX, obj *Object, transform ebiten.GeoM, view ebiten.GeoM) {
+	if obj == nil {
+		return // Nothing to draw
+	}
+
+	if obj.tile == nil {
+		if obj.HasTemplate() {
+			obj = MustGetTX(finch.AssetFile(obj.Template())).Object
+		} else if obj.GID() == 0 {
+			return // Nothing to draw
+		}
+
+		tile, err := decodeTile(uint32(obj.GID()), tmx.Tilesets, tmx.TileHeight())
+		if err != nil {
+			ctx.Logger().Error("tiled: error decoding object tile", slog.Int("gid", obj.GID()), slog.Any("error", err))
+			return
+		}
+
+		obj.tile = tile
+	}
+
+	op.GeoM.Reset()
+	op.GeoM.Concat(transform)
+	op.GeoM.Concat(view)
+
+	if err := drawTile(img, obj.tile, tmx.Tilesets, tmx.TileWidth(), tmx.TileHeight(), op); err != nil {
+		ctx.Logger().Error("tiled: error drawing object tile", slog.Int("gid", obj.GID()), slog.Any("error", err))
 	}
 }
 
@@ -170,6 +202,24 @@ func drawMapLayer(mode DrawMode, destImg *ebiten.Image, layer *Layer, tilesets [
 	return nil
 }
 
+func drawTile(destImg *ebiten.Image, tile *Tile, tilesets []*Tileset, cellWidth, cellHeight int, op *ebiten.DrawImageOptions) error {
+	if tile == nil || len(tilesets) == 0 {
+		return nil
+	}
+
+	srcImg, err := GetTSXImg(finch.AssetFile(tile.TsxSrc))
+	if err != nil {
+		return err
+	}
+
+	tilesPerRow := float64(srcImg.Bounds().Dx()) / tile.Width
+	tileX := (int(tile.GID) % int(tilesPerRow)) * int(tile.Width)
+	tileY := (int(tile.GID) / int(tilesPerRow)) * int(tile.Height)
+
+	destImg.DrawImage(srcImg.SubImage(image.Rect(tileX, tileY, tileX+int(tile.Width), tileY+int(tile.Height))).(*ebiten.Image), op)
+	return nil
+}
+
 func processTiles(layer *Layer, tilesets []*Tileset, region *geom.Rect64, layerWidth, layerHeight, cellWidth, cellHeight int, isInfinite bool) error {
 	if isInfinite {
 		return processChunks(layer, tilesets, region, layerWidth, layerHeight, cellWidth, cellHeight)
@@ -230,6 +280,71 @@ func processChunks(layer *Layer, tilesets []*Tileset, region *geom.Rect64, layer
 	return nil
 }
 
+func decodeTile(data uint32, tilesets []*Tileset, cellHeight int) (*Tile, error) {
+	gid := data & TILE_ID_MASK
+	if gid == 0 {
+		return nil, nil // Empty tile
+	}
+
+	var flags FlipFlags
+	if (data & TILE_FLIP_HORIZONTAL) != 0 {
+		flags |= FLIP_HORIZONTAL
+	}
+	if (data & TILE_FLIP_VERTICAL) != 0 {
+		flags |= FLIP_VERTICAL
+	}
+	if (data & TILE_FLIP_DIAGONAL) != 0 {
+		flags |= FLIP_DIAGONAL
+		// According to Tiled docs, diagonal flip swaps horizontal and vertical flips
+		// See: https://doc.mapeditor.org/en/stable/reference/global-tile-ids/#tile-flipping
+		if flags&(FLIP_HORIZONTAL|FLIP_VERTICAL) != 0 {
+			flags ^= FLIP_HORIZONTAL | FLIP_VERTICAL
+		}
+	}
+	if (data & TILE_FLIP_ROTATED_HEX) != 0 {
+		flags |= FLIP_ROTATED_HEX
+	}
+
+	var tileset *Tileset
+	for j := len(tilesets) - 1; j >= 0; j-- {
+		if gid >= tilesets[j].FirstGID() {
+			tileset = tilesets[j]
+			break
+		}
+	}
+
+	if tileset == nil {
+		return nil, fmt.Errorf("no tileset found for GID %d", gid)
+	}
+
+	tsx, err := GetTSX(finch.AssetFile(tileset.Source()))
+	if err != nil {
+		return nil, err
+	}
+
+	x, y := 0.0, 0.0
+
+	if tsx.TileOffset != nil {
+		x += float64(tsx.TileOffset.X())
+		y += float64(tsx.TileOffset.Y())
+	}
+
+	// Tiled anchors tiles at the bottom-left of their cell.
+	// Adjust the Y position to offset the tile by the difference between the cell and tile's heights.
+	// See: https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
+	y += float64(cellHeight) - float64(tsx.TileHeight())
+
+	return &Tile{
+		Flags:  flags,
+		GID:    gid - tileset.FirstGID(),
+		TsxSrc: tileset.Source(),
+		X:      x,
+		Y:      y,
+		Width:  float64(tsx.TileWidth()),
+		Height: float64(tsx.TileHeight()),
+	}, nil
+}
+
 func decodeTiles(data string, tilesets []*Tileset, localStartX, localStartY, layerWidth, layerHeight, cellWidth, cellHeight int) ([]*Tile, error) {
 	parsedData, err := parseCsvData(data)
 	if err != nil {
@@ -241,69 +356,23 @@ func decodeTiles(data string, tilesets []*Tileset, localStartX, localStartY, lay
 	cellPerRow := layerWidth / cellWidth
 
 	for i := range parsedData {
-		gid := parsedData[i] & TILE_ID_MASK
-		if gid == 0 {
-			continue // Empty tile
-		}
+		tile, err := decodeTile(parsedData[i], tilesets, cellHeight)
 
-		var flags FlipFlags
-		if (parsedData[i] & TILE_FLIP_HORIZONTAL) != 0 {
-			flags |= FLIP_HORIZONTAL
-		}
-		if (parsedData[i] & TILE_FLIP_VERTICAL) != 0 {
-			flags |= FLIP_VERTICAL
-		}
-		if (parsedData[i] & TILE_FLIP_DIAGONAL) != 0 {
-			flags |= FLIP_DIAGONAL
-			// According to Tiled docs, diagonal flip swaps horizontal and vertical flips
-			// See: https://doc.mapeditor.org/en/stable/reference/global-tile-ids/#tile-flipping
-			if flags&(FLIP_HORIZONTAL|FLIP_VERTICAL) != 0 {
-				flags ^= FLIP_HORIZONTAL | FLIP_VERTICAL
-			}
-		}
-		if (parsedData[i] & TILE_FLIP_ROTATED_HEX) != 0 {
-			flags |= FLIP_ROTATED_HEX
-		}
-
-		var tileset *Tileset
-		for j := len(tilesets) - 1; j >= 0; j-- {
-			if gid >= tilesets[j].FirstGID() {
-				tileset = tilesets[j]
-				break
-			}
-		}
-
-		if tileset == nil {
-			return nil, fmt.Errorf("no tileset found for GID %d", gid)
-		}
-
-		tsx, err := GetTSX(finch.AssetFile(tileset.Source()))
 		if err != nil {
 			return nil, err
+		}
+
+		if tile == nil {
+			continue
 		}
 
 		x := float64(localStartX + ((i % cellPerRow) * cellWidth))
 		y := float64(localStartY + ((i / cellPerRow) * cellHeight))
 
-		if tsx.TileOffset != nil {
-			x += float64(tsx.TileOffset.X())
-			y += float64(tsx.TileOffset.Y())
-		}
+		tile.X += x
+		tile.Y += y
 
-		// Tiled anchors tiles at the bottom-left of their cell.
-		// Adjust the Y position to offset the tile by the difference between the cell and tile's heights.
-		// See: https://doc.mapeditor.org/en/stable/reference/tmx-map-format/
-		y += float64(cellHeight) - float64(tsx.TileHeight())
-
-		tiles = append(tiles, &Tile{
-			Flags:  flags,
-			GID:    gid - tileset.FirstGID(),
-			TsxSrc: tileset.Source(),
-			X:      x,
-			Y:      y,
-			Width:  float64(tsx.TileWidth()),
-			Height: float64(tsx.TileHeight()),
-		})
+		tiles = append(tiles, tile)
 	}
 
 	return tiles, nil
@@ -330,13 +399,16 @@ func collectTiles(layer *Layer, region *geom.Rect64, cellWidth, cellHeight int, 
 		return nil
 	}
 
-	tiles := layer.tiles
+	var tiles []*Tile
 	if isInfinite {
+		tiles = make([]*Tile, 0)
 		for chunkRect, chunkTiles := range layer.partitions {
 			if region.Intersects(chunkRect) {
 				tiles = append(tiles, chunkTiles...)
 			}
 		}
+	} else {
+		tiles = layer.tiles
 	}
 
 	var result []*Tile

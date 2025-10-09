@@ -139,61 +139,65 @@ type TiledXMLAttr interface {
 type TiledXMLAttrTable map[string]TiledXMLAttr
 
 const (
-	ColumnsAttr      = "columns"
-	EncodingAttr     = "encoding"
-	FirstGIDAttr     = "firstgid"
-	HeightAttr       = "height"
-	IDAttr           = "id"
-	InfiniteAttr     = "infinite"
-	LockedAttr       = "locked"
-	NameAttr         = "name"
-	NextLayerIDAttr  = "nextlayerid"
-	NextObjectIDAttr = "nextobjectid"
-	OrientationAttr  = "orientation"
-	PropertyTypeAttr = "propertytype"
-	RenderOrderAttr  = "renderorder"
-	SourceAttr       = "source"
-	SpacingAttr      = "spacing"
-	TemplateAttr     = "template"
-	TileCountAttr    = "tilecount"
-	TileHeightAttr   = "tileheight"
-	TileWidthAttr    = "tilewidth"
-	TiledVersionAttr = "tiledversion"
-	ValueAttr        = "value"
-	VersionAttr      = "version"
-	VisibleAttr      = "visible"
-	WidthAttr        = "width"
-	XAttr            = "x"
-	YAttr            = "y"
+	ColumnsAttr         = "columns"
+	EncodingAttr        = "encoding"
+	FirstGIDAttr        = "firstgid"
+	GIDAttr             = "gid"
+	HeightAttr          = "height"
+	IDAttr              = "id"
+	InfiniteAttr        = "infinite"
+	LockedAttr          = "locked"
+	NameAttr            = "name"
+	NextLayerIDAttr     = "nextlayerid"
+	NextObjectIDAttr    = "nextobjectid"
+	ObjectAlignmentAttr = "objectalignment"
+	OrientationAttr     = "orientation"
+	PropertyTypeAttr    = "propertytype"
+	RenderOrderAttr     = "renderorder"
+	SourceAttr          = "source"
+	SpacingAttr         = "spacing"
+	TemplateAttr        = "template"
+	TileCountAttr       = "tilecount"
+	TileHeightAttr      = "tileheight"
+	TileWidthAttr       = "tilewidth"
+	TiledVersionAttr    = "tiledversion"
+	ValueAttr           = "value"
+	VersionAttr         = "version"
+	VisibleAttr         = "visible"
+	WidthAttr           = "width"
+	XAttr               = "x"
+	YAttr               = "y"
 )
 
 var attr_unmarshallers = map[string]func(s string) (TiledXMLAttr, error){
-	RenderOrderAttr:  func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
-	OrientationAttr:  func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
-	VersionAttr:      func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
-	TiledVersionAttr: func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
-	NameAttr:         func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
-	SourceAttr:       func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
-	EncodingAttr:     func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
-	PropertyTypeAttr: func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
-	ValueAttr:        func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
-	TemplateAttr:     func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
-	InfiniteAttr:     func(s string) (TiledXMLAttr, error) { return UnmarshalAttrBool(s) },
-	VisibleAttr:      func(s string) (TiledXMLAttr, error) { return UnmarshalAttrBool(s) },
-	LockedAttr:       func(s string) (TiledXMLAttr, error) { return UnmarshalAttrBool(s) },
-	WidthAttr:        func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
-	HeightAttr:       func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
-	TileWidthAttr:    func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
-	TileHeightAttr:   func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
-	SpacingAttr:      func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
-	TileCountAttr:    func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
-	ColumnsAttr:      func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
-	FirstGIDAttr:     func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
-	IDAttr:           func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
-	XAttr:            func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
-	YAttr:            func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
-	NextLayerIDAttr:  func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
-	NextObjectIDAttr: func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
+	RenderOrderAttr:     func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
+	OrientationAttr:     func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
+	VersionAttr:         func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
+	TiledVersionAttr:    func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
+	NameAttr:            func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
+	SourceAttr:          func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
+	EncodingAttr:        func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
+	PropertyTypeAttr:    func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
+	ValueAttr:           func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
+	TemplateAttr:        func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
+	ObjectAlignmentAttr: func(s string) (TiledXMLAttr, error) { return UnmarshalAttrString(s) },
+	InfiniteAttr:        func(s string) (TiledXMLAttr, error) { return UnmarshalAttrBool(s) },
+	VisibleAttr:         func(s string) (TiledXMLAttr, error) { return UnmarshalAttrBool(s) },
+	LockedAttr:          func(s string) (TiledXMLAttr, error) { return UnmarshalAttrBool(s) },
+	GIDAttr:             func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
+	WidthAttr:           func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
+	HeightAttr:          func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
+	TileWidthAttr:       func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
+	TileHeightAttr:      func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
+	SpacingAttr:         func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
+	TileCountAttr:       func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
+	ColumnsAttr:         func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
+	FirstGIDAttr:        func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
+	IDAttr:              func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
+	XAttr:               func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
+	YAttr:               func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
+	NextLayerIDAttr:     func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
+	NextObjectIDAttr:    func(s string) (TiledXMLAttr, error) { return UnmarshalAttrInt(s) },
 }
 
 func (m *TiledXMLAttrTable) UnmarshalXMLAttr(attr xml.Attr) error {
@@ -219,7 +223,7 @@ func (m *TiledXMLAttrTable) UnmarshalXMLAttr(attr xml.Attr) error {
 }
 
 // ======================================================
-// TSX TileOffset Property
+// TileOffset Property
 // ======================================================
 
 type Offset struct {
@@ -245,7 +249,7 @@ func (offset Offset) Y() int {
 }
 
 // ======================================================
-// TMX Encoding
+// Encoding
 // ======================================================
 
 type Encoding int
@@ -284,7 +288,70 @@ func (e *Encoding) UnmarshalJSON(data []byte) error {
 }
 
 // ======================================================
-// TMX Orientation
+// Object Alignment
+// ======================================================
+
+type ObjectAlignment int
+
+const (
+	ObjectAlignmentUnspecified ObjectAlignment = iota
+	ObjectAlignmentTopLeft
+	ObjectAlignmentTop
+	ObjectAlignmentTopRight
+	ObjectAlignmentLeft
+	ObjectAlignmentCenter
+	ObjectAlignmentRight
+	ObjectAlignmentBottomLeft
+	ObjectAlignmentBottom
+	ObjectAlignmentBottomRight
+)
+
+func (oa ObjectAlignment) String() string {
+	switch oa {
+	case ObjectAlignmentUnspecified:
+		return "unspecified"
+	case ObjectAlignmentTopLeft:
+		return "topleft"
+	case ObjectAlignmentTop:
+		return "top"
+	case ObjectAlignmentTopRight:
+		return "topright"
+	case ObjectAlignmentLeft:
+		return "left"
+	case ObjectAlignmentCenter:
+		return "center"
+	case ObjectAlignmentRight:
+		return "right"
+	case ObjectAlignmentBottomLeft:
+		return "bottomleft"
+	case ObjectAlignmentBottom:
+		return "bottom"
+	case ObjectAlignmentBottomRight:
+		return "bottomright"
+	default:
+		return "unknown"
+	}
+}
+
+func (oa ObjectAlignment) IsValid() bool {
+	return oa >= ObjectAlignmentUnspecified && oa <= ObjectAlignmentBottomRight
+}
+
+func (oa ObjectAlignment) MarshalJSON() ([]byte, error) {
+	return enum.MarshalEnum(oa)
+}
+
+func (oa *ObjectAlignment) UnmarshalJSON(data []byte) error {
+	val, err := enum.UnmarshalEnum[ObjectAlignment](data)
+	if err != nil {
+		return err
+	}
+	*oa = val
+	return nil
+}
+
+// ======================================================
+// Orientation
 // ======================================================
 
 type Orientation int
@@ -329,7 +396,7 @@ func (o *Orientation) UnmarshalJSON(data []byte) error {
 }
 
 // ======================================================
-// TMX Render Order
+// Render Order
 // ======================================================
 
 type RenderOrder int
@@ -490,8 +557,9 @@ func (chunk DataChunk) Bounds() geom.Rect64 {
 // ======================================================
 
 type Layer struct {
-	Attrs TiledXMLAttrTable `xml:",any,attr"`
-	Data  *LayerData        `xml:"data"`
+	Attrs      TiledXMLAttrTable `xml:",any,attr"`
+	Data       *LayerData        `xml:"data"`
+	Properties []*Property       `xml:"properties>property"`
 
 	// Should these be stored here? Don't serialize them!
 	tiles      []*Tile
@@ -559,6 +627,15 @@ func (layer Layer) Bounds() geom.Rect64 {
 	return geom.NewRect64(0, 0, float64(layer.Width()), float64(layer.Height()))
 }
 
+func (layer Layer) PropertyOfType(ptype string) (*Property, bool) {
+	for _, prop := range layer.Properties {
+		if prop.PropertyType() == ptype {
+			return prop, true
+		}
+	}
+	return nil, false
+}
+
 // ======================================================
 // Property
 // ======================================================
@@ -618,8 +695,9 @@ func (prop Property) PropertyOfType(ptype string) (*Property, bool) {
 // ======================================================
 
 type ObjectGroup struct {
-	Attrs   TiledXMLAttrTable `xml:",any,attr"`
-	Objects []*Object         `xml:"object"`
+	Attrs      TiledXMLAttrTable `xml:",any,attr"`
+	Objects    []*Object         `xml:"object"`
+	Properties []*Property       `xml:"properties>property"`
 }
 
 func (og ObjectGroup) ID() int {
@@ -640,6 +718,15 @@ func (og ObjectGroup) Name() string {
 	return ""
 }
 
+func (og ObjectGroup) PropertyOfType(ptype string) (*Property, bool) {
+	for _, prop := range og.Properties {
+		if prop.PropertyType() == ptype {
+			return prop, true
+		}
+	}
+	return nil, false
+}
+
 // ======================================================
 // Object
 // ======================================================
@@ -647,11 +734,23 @@ func (og ObjectGroup) Name() string {
 type Object struct {
 	Attrs      TiledXMLAttrTable `xml:",any,attr"`
 	Properties []*Property       `xml:"properties>property"`
+	Tileset    *Tileset          `xml:"tileset"`
+
+	tile *Tile
 }
 
 func (obj Object) ID() int {
 	if id, exists := obj.Attrs[IDAttr]; exists {
 		if attr, ok := id.(AttrInt); ok {
+			return attr.Int()
+		}
+	}
+	return 0
+}
+
+func (obj Object) GID() int {
+	if gid, exists := obj.Attrs[GIDAttr]; exists {
+		if attr, ok := gid.(AttrInt); ok {
 			return attr.Int()
 		}
 	}

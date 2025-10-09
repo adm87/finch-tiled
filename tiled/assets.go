@@ -214,8 +214,8 @@ func MustGetTMX(file finch.AssetFile) *TMX {
 }
 
 // MustGetTSX is like GetTSX but panics if the asset cannot be found.
-func MustGetTSX(src string) *TSX {
-	tsx, err := GetTSX(finch.AssetFile(src))
+func MustGetTSX(file finch.AssetFile) *TSX {
+	tsx, err := GetTSX(file)
 	if err != nil {
 		panic(err)
 	}
@@ -223,8 +223,8 @@ func MustGetTSX(src string) *TSX {
 }
 
 // MustGetTSXImg is like GetTSXImg but panics if the asset cannot be found.
-func MustGetTSXImg(src string) *ebiten.Image {
-	img, err := GetTSXImg(finch.AssetFile(src))
+func MustGetTSXImg(file finch.AssetFile) *ebiten.Image {
+	img, err := GetTSXImg(file)
 	if err != nil {
 		panic(err)
 	}
